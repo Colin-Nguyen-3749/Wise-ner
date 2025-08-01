@@ -1,0 +1,59 @@
+body, .fc, .fc * {
+    font-family: 'Quicksand', sans-serif !important;
+}
+
+/* Fix FullCalendar arrow button visuals */
+.fc .fc-prev-button .fc-icon,
+.fc .fc-prevYear-button .fc-icon {
+    font-family: inherit !important;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 1.5em;
+    line-height: 1;
+    content: "\2190";
+}
+.fc .fc-prev-button .fc-icon:after,
+.fc .fc-prevYear-button .fc-icon:after {
+    content: "\2190";
+}
+.fc .fc-next-button .fc-icon,
+.fc .fc-nextYear-button .fc-icon {
+    font-family: inherit !important;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 1.5em;
+    line-height: 1;
+    content: "\2192";
+}
+.fc .fc-next-button .fc-icon:after,
+.fc .fc-nextYear-button .fc-icon:after {
+    content: "\2192";
+}
+
+/* Hide the default icon content */
+.fc .fc-prev-button .fc-icon:before,
+.fc .fc-next-button .fc-icon:before,
+.fc .fc-prevYear-button .fc-icon:before,
+.fc .fc-nextYear-button .fc-icon:before {
+    content: "";
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 50px;
+    font-family: 'Quicksand', sans-serif;
+}
+
+.calendar-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+#calendar {
+    max-width: 800px;
+    margin: 0 auto;
+}

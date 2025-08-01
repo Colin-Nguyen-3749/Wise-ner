@@ -5,6 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>WISE-ner</title>
         <link rel="stylesheet" href="styles.css"/>
+        <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet"/>
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
     </head>
 
     <body>
@@ -13,11 +18,9 @@
                 <h1 class="main-title">WISE-ner</h1>
             </header>
             <div class="calendar-container">
-                <iframe src="https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=America%2FNew_York&showPrint=0&mode=WEEK&hl=en&title=WISE-ner&src=Mzk4ZjU0OGE0ZmI4Nzk1NGVmNWE5NDYzMjZhZmY5ZDI5Y2Q4NDQyNjZlMjdkNWQ5NTQwMWQ1NGExYjcwYmZkMEBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&src=ZW4udXNhI2hvbGlkYXlAZ3JvdXAudi5jYWxlbmRhci5nb29nbGUuY29t&color=%23c0ca33&color=%230b8043" style="border:solid 1px #777" width="800" height="600" frameborder="0" scrolling="no"></iframe>
-            
+                <div id="calendar"></div>
             </div>
         </div>
-
+        <script src="script.js"></script>
     </body>
-
 </html>
