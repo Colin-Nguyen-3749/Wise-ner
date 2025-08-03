@@ -58,9 +58,9 @@ document.addEventListener('DOMContentLoaded', function() {
         addKeyBtn.addEventListener('click', function() {
             var li = document.createElement('li');
 
-            // Preset color options
+            // Preset color options add strong + pastel colors
             var colors = [
-                "#ff6767ff", "#d15e00ff", "#ffc956ff", "#f2f24cff", "#48da74ff",
+                "#ff0000ff", "#ff7300ff", "#ffae00ff", "#ffff00ff", "#48da74ff",
                 "#4c9967ff", "#4f6de4ff", "#a45ff7ff", "#e97bffff",
                 "#e2a6d0ff"
             ];
