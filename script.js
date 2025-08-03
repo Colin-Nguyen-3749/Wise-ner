@@ -83,9 +83,56 @@ document.addEventListener('DOMContentLoaded', function() {
             nameInput.style.borderRadius = '4px';
             nameInput.style.padding = '2px 6px';
 
+            // When user presses Enter, replace input with static text
+            nameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var value = nameInput.value.trim() || 'Unnamed';
+                    var nameSpan = document.createElement('span');
+                    nameSpan.textContent = value;
+                    nameSpan.className = 'legend-name-text';
+                    nameSpan.style.flex = '1';
+                    nameSpan.style.cursor = 'pointer';
+                    nameSpan.style.padding = '2px 6px';
+                    nameSpan.style.borderRadius = '4px';
+
+                    // Double-click to edit
+                    nameSpan.addEventListener('dblclick', function() {
+                        li.replaceChild(nameInput, nameSpan);
+                        nameInput.value = nameSpan.textContent;
+                        nameInput.focus();
+                    });
+
+                    li.replaceChild(nameSpan, nameInput);
+                }
+            });
+
+            // Optional: blur to save as well
+            nameInput.addEventListener('blur', function() {
+                if (nameInput.parentNode === li) {
+                    var value = nameInput.value.trim() || 'Unnamed';
+                    var nameSpan = document.createElement('span');
+                    nameSpan.textContent = value;
+                    nameSpan.className = 'legend-name-text';
+                    nameSpan.style.flex = '1';
+                    nameSpan.style.cursor = 'pointer';
+                    nameSpan.style.padding = '2px 6px';
+                    nameSpan.style.borderRadius = '4px';
+
+                    nameSpan.addEventListener('dblclick', function() {
+                        li.replaceChild(nameInput, nameSpan);
+                        nameInput.value = nameSpan.textContent;
+                        nameInput.focus();
+                    });
+
+                    li.replaceChild(nameSpan, nameInput);
+                }
+            });
+
             li.appendChild(colorInput);
             li.appendChild(nameInput);
             legendList.appendChild(li);
+            nameInput.focus();
         });
     }
 });
