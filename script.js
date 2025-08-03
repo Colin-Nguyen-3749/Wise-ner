@@ -60,9 +60,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Preset color options
             var colors = [
-                "#1976d2", "#388e3c", "#fbc02d", "#d32f2f", "#7b1fa2",
-                "#0288d1", "#c2185b", "#ffa000", "#388e3c", "#f57c00",
-                "#455a64", "#0097a7", "#8bc34a", "#e91e63", "#ff5722"
+                "#ff6767ff", "#d15e00ff", "#ffc956ff", "#f2f24cff", "#48da74ff",
+                "#4c9967ff", "#4f6de4ff", "#a45ff7ff", "#e97bffff",
+                "#e2a6d0ff"
             ];
 
             // Color circle
