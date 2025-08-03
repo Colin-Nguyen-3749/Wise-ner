@@ -9,43 +9,15 @@ document.addEventListener('DOMContentLoaded', function() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
+        // Prevent any action on day click
+        dateClick: function(info) {
+            // Do nothing
+        },
         select: function(info) {
-            var title = prompt('Enter Event Title:');
-            if (title) {
-                calendar.addEvent({
-                    title: title,
-                    start: info.start,
-                    end: info.end,
-                    allDay: info.allDay
-                });
-            }
-            calendar.unselect();
+            // Do nothing
         },
         datesSet: function() {
-            // Add "Add Event" buttons to each day cell
-            setTimeout(function() {
-                document.querySelectorAll('.fc-daygrid-day').forEach(function(cell) {
-                    // Prevent duplicate buttons
-                    if (!cell.querySelector('.add-event-btn')) {
-                        var btn = document.createElement('button');
-                        btn.className = 'add-event-btn';
-                        btn.textContent = 'Add Event';
-                        btn.addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            var dateStr = cell.getAttribute('data-date');
-                            var title = prompt('Enter Event Title:');
-                            if (title && dateStr) {
-                                calendar.addEvent({
-                                    title: title,
-                                    start: dateStr,
-                                    allDay: true
-                                });
-                            }
-                        });
-                        cell.querySelector('.fc-daygrid-day-frame').appendChild(btn);
-                    }
-                });
-            }, 0);
+            // No "Add Event" button logic
         }
     });
     calendar.render();
@@ -164,3 +136,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+legendList.appendChild(li);
+nameInput.focus();
+
+li.appendChild(colorCircle);
+li.appendChild(colorMenu);
+li.appendChild(nameInput);
+legendList.appendChild(li);
+nameInput.focus();
+
+legendList.appendChild(li);
+nameInput.focus();
+
+li.appendChild(colorCircle);
+li.appendChild(colorMenu);
+li.appendChild(nameInput);
+legendList.appendChild(li);
+nameInput.focus();
+

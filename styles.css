@@ -66,36 +66,6 @@ h1 {
     margin: 0 auto;
 }
 
-/* Add Event button styles */
-.fc-daygrid-day:hover .add-event-btn {
-    display: block;
-}
-.add-event-btn {
-    display: none;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 4px;
-    z-index: 10;
-    background: #4caf50;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 0.8em; /* responsive horizontal padding */
-    font-size: 0.85em;  /* slightly larger for readability */
-    height: 22px;
-    min-width: 90px;    /* increased to fit text */
-    max-width: 120px;   /* prevent overflow */
-    white-space: nowrap;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.2s;
-    box-sizing: border-box;
-}
-.add-event-btn:hover {
-    background: #388e3c;
-}
-
 /* Calendar day hover effect */
 .fc-daygrid-day:hover {
     background: rgba(0,0,0,0.06);
@@ -223,6 +193,22 @@ h1 {
     min-width: 140px;
     max-width: 180px;
 }
+
+.legend-color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: border 0.2s;
+}
+
+.legend-color-option:hover {
+    border: 2px solid #1976d2;
+}
+ 
 
 .legend-color-option {
     width: 24px;
