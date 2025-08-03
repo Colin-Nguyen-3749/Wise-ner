@@ -128,6 +128,7 @@ h1 {
 }
 
 #legend-list li {
+    position: relative; /* Ensure menu is positioned relative to each legend entry */
     margin-bottom: 0.5em;
     display: flex;
     align-items: center;
@@ -138,7 +139,7 @@ h1 {
     width: 24px;
     height: 24px;
     border: none;
-    border-radius: 50%;
+    border-radius: 0%;
     padding: 0;
     margin-right: 8px;
     cursor: pointer;
@@ -179,4 +180,50 @@ h1 {
 
 #add-key-btn:hover {
     background: #1565c0;
+}
+
+.legend-color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 2px solid #bbb;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: border 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    position: relative;
+}
+
+.legend-color-menu {
+    position: absolute;
+    left: 0;
+    top: 32px; /* Directly below the color circle */
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: repeat(5, 24px);
+    gap: 6px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.legend-color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: border 0.2s;
+}
+
+.legend-color-option:hover {
+    border: 2px solid #1976d2;
+}
 }

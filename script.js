@@ -58,19 +58,46 @@ document.addEventListener('DOMContentLoaded', function() {
         addKeyBtn.addEventListener('click', function() {
             var li = document.createElement('li');
 
-            // Color picker circle
-            var colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = '#1976d2';
-            colorInput.className = 'legend-color-input';
-            colorInput.style.width = '24px';
-            colorInput.style.height = '24px';
-            colorInput.style.border = 'none';
-            colorInput.style.borderRadius = '50%';
-            colorInput.style.padding = '0';
-            colorInput.style.marginRight = '8px';
-            colorInput.style.cursor = 'pointer';
-            colorInput.style.background = 'none';
+            // Preset color options
+            var colors = [
+                "#1976d2", "#388e3c", "#fbc02d", "#d32f2f", "#7b1fa2",
+                "#0288d1", "#c2185b", "#ffa000", "#388e3c", "#f57c00",
+                "#455a64", "#0097a7", "#8bc34a", "#e91e63", "#ff5722"
+            ];
+
+            // Color circle
+            var colorCircle = document.createElement('span');
+            colorCircle.className = 'legend-color-circle';
+            colorCircle.style.background = colors[0];
+            colorCircle.style.marginRight = '8px';
+
+            // Color menu (hidden by default)
+            var colorMenu = document.createElement('div');
+            colorMenu.className = 'legend-color-menu';
+            colorMenu.style.display = 'none';
+
+            colors.forEach(function(color) {
+                var colorOption = document.createElement('span');
+                colorOption.className = 'legend-color-option';
+                colorOption.style.background = color;
+                colorOption.setAttribute('data-color', color);
+                colorOption.addEventListener('click', function(e) {
+                    colorCircle.style.background = color;
+                    colorMenu.style.display = 'none';
+                });
+                colorMenu.appendChild(colorOption);
+            });
+
+            // Show/hide color menu on circle click
+            colorCircle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                colorMenu.style.display = colorMenu.style.display === 'none' ? 'grid' : 'none';
+            });
+
+            // Hide color menu if clicking elsewhere
+            document.addEventListener('click', function() {
+                colorMenu.style.display = 'none';
+            });
 
             // Category name input
             var nameInput = document.createElement('input');
@@ -129,7 +156,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            li.appendChild(colorInput);
+            li.appendChild(colorCircle);
+            li.appendChild(colorMenu);
             li.appendChild(nameInput);
             legendList.appendChild(li);
             nameInput.focus();
