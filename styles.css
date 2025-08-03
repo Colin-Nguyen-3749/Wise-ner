@@ -81,13 +81,25 @@ h1 {
     color: #fff;
     border: none;
     border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 0.85em;
+    padding: 2px 0.8em; /* responsive horizontal padding */
+    font-size: 0.85em;  /* slightly larger for readability */
+    height: 22px;
+    min-width: 90px;    /* increased to fit text */
+    max-width: 120px;   /* prevent overflow */
+    white-space: nowrap;
+    text-align: center;
     cursor: pointer;
     transition: background 0.2s;
+    box-sizing: border-box;
 }
 .add-event-btn:hover {
     background: #388e3c;
+}
+
+/* Calendar day hover effect */
+.fc-daygrid-day:hover {
+    background: rgba(0,0,0,0.06);
+    transition: background 0.2s;
 }
 
 /* Make sure day cells are positioned for absolute button placement */
@@ -226,4 +238,4 @@ h1 {
 .legend-color-option:hover {
     border: 2px solid #1976d2;
 }
-}
+
