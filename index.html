@@ -21,10 +21,31 @@
                 <div class="calendar-container">
                     <div id="calendar"></div>
                 </div>
-                <aside class="legend-container">
+                <aside class="legend-container" id="legend-container">
                     <h2>Legend</h2>
                     <ul id="legend-list"></ul>
                     <button id="add-key-btn">Add Key</button>
+                </aside>
+                <aside class="event-create-container" id="event-create-container" style="display:none;">
+                    <h2>Create Event</h2>
+                    <form id="create-event-form">
+                        <label>
+                            Title:<br>
+                            <input type="text" id="event-title" required placeholder="Event Title">
+                        </label>
+                        <br><br>
+                        <label>
+                            Start Time:<br>
+                            <input type="time" id="event-start">
+                        </label>
+                        <br><br>
+                        <label>
+                            End Time:<br>
+                            <input type="time" id="event-end">
+                        </label>
+                        <br><br>
+                        <button type="submit">Add Event</button>
+                    </form>
                 </aside>
             </div>
         </div>

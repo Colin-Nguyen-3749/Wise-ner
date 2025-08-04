@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
+    var legendContainer = document.getElementById('legend-container');
+    var eventCreateContainer = document.getElementById('event-create-container');
+    var createEventForm = document.getElementById('create-event-form');
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         selectable: true,
@@ -16,10 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Do nothing
         },
         datesSet: function() {
-            // Add lingering hover effect to day cells
             setTimeout(function() {
                 document.querySelectorAll('.fc-daygrid-day').forEach(function(cell) {
-                    // Remove previous listeners to avoid duplicates
                     cell.onmouseenter = null;
                     cell.onmouseleave = null;
                     cell.onclick = null;
@@ -34,33 +35,76 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(function() {
                             cell.classList.remove('linger-hover');
                             cell.classList.remove('linger-fade');
-                        }, 400); // matches CSS transition duration
+                        }, 400);
                     });
 
-                    // Smooth transition to single day view on click
+                    // Show event creation section on single day view
                     cell.addEventListener('click', function(e) {
                         var dateStr = cell.getAttribute('data-date');
-                        var calView = calendarEl.querySelector('.fc-view-harness');
-                        if (calView) {
-                            calView.style.transition = 'transform 0.4s cubic-bezier(.4,2,.3,1), opacity 0.4s';
-                            calView.style.transform = 'scale(0.95)';
-                            calView.style.opacity = '0.5';
-                            setTimeout(function() {
-                                calendar.changeView('timeGridDay', dateStr);
-                                setTimeout(function() {
-                                    calView.style.transform = 'scale(1)';
-                                    calView.style.opacity = '1';
-                                }, 10);
-                            }, 400);
-                        } else {
-                            calendar.changeView('timeGridDay', dateStr);
-                        }
+                        calendar.changeView('timeGridDay', dateStr);
                     });
                 });
+
+                // Show/hide legend/event-create based on view
+                var viewType = calendar.view.type;
+                if (legendContainer && eventCreateContainer) {
+                    if (viewType === 'timeGridDay') {
+                        legendContainer.style.display = 'none';
+                        eventCreateContainer.style.display = '';
+                    } else {
+                        legendContainer.style.display = '';
+                        eventCreateContainer.style.display = 'none';
+                    }
+                }
             }, 0);
+        },
+        viewDidMount: function(arg) {
+            // Also handle legend/event-create visibility when view changes
+            if (legendContainer && eventCreateContainer) {
+                if (arg.view.type === 'timeGridDay') {
+                    legendContainer.style.display = 'none';
+                    eventCreateContainer.style.display = '';
+                } else {
+                    legendContainer.style.display = '';
+                    eventCreateContainer.style.display = 'none';
+                }
+            }
         }
     });
     calendar.render();
+
+    // Handle event creation form submission
+    if (createEventForm) {
+        createEventForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var title = document.getElementById('event-title').value.trim();
+            var startTime = document.getElementById('event-start').value;
+            var endTime = document.getElementById('event-end').value;
+            var date = calendar.view.currentStart; // current day in view
+
+            if (title) {
+                var start = date;
+                var end = date;
+                if (startTime) {
+                    start = new Date(date);
+                    var [h, m] = startTime.split(':');
+                    start.setHours(h, m, 0, 0);
+                }
+                if (endTime) {
+                    end = new Date(date);
+                    var [h, m] = endTime.split(':');
+                    end.setHours(h, m, 0, 0);
+                }
+                calendar.addEvent({
+                    title: title,
+                    start: start,
+                    end: endTime ? end : undefined,
+                    allDay: !startTime && !endTime
+                });
+                createEventForm.reset();
+            }
+        });
+    }
 
     // Legend functionality
     var legendList = document.getElementById('legend-list');
@@ -176,21 +220,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-legendList.appendChild(li);
-nameInput.focus();
-
-li.appendChild(colorCircle);
-li.appendChild(colorMenu);
-li.appendChild(nameInput);
-legendList.appendChild(li);
-nameInput.focus();
-
-legendList.appendChild(li);
-nameInput.focus();
-
-li.appendChild(colorCircle);
-li.appendChild(colorMenu);
-li.appendChild(nameInput);
-legendList.appendChild(li);
-nameInput.focus();
 

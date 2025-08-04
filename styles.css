@@ -243,3 +243,46 @@ h1 {
     border: 2px solid #1976d2;
 }
 
+.event-create-container {
+    min-width: 220px;
+    max-width: 260px;
+    background: #f7f7f7;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    font-size: 1em;
+    margin-left: auto;
+}
+
+.event-create-container h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    margin-bottom: 0.5em;
+}
+
+#event-title, #event-start, #event-end {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1em;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+#create-event-form button[type="submit"] {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#create-event-form button[type="submit"]:hover {
+    background: #1565c0;
+}
+
