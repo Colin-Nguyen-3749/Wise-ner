@@ -17,7 +17,27 @@ document.addEventListener('DOMContentLoaded', function() {
             // Do nothing
         },
         datesSet: function() {
-            // No "Add Event" button logic
+            // Add lingering hover effect to day cells
+            setTimeout(function() {
+                document.querySelectorAll('.fc-daygrid-day').forEach(function(cell) {
+                    // Remove previous listeners to avoid duplicates
+                    cell.onmouseenter = null;
+                    cell.onmouseleave = null;
+
+                    cell.addEventListener('mouseenter', function() {
+                        cell.classList.add('linger-hover');
+                        cell.classList.remove('linger-fade');
+                    });
+
+                    cell.addEventListener('mouseleave', function() {
+                        cell.classList.add('linger-fade');
+                        setTimeout(function() {
+                            cell.classList.remove('linger-hover');
+                            cell.classList.remove('linger-fade');
+                        }, 400); // matches CSS transition duration
+                    });
+                });
+            }, 0);
         }
     });
     calendar.render();
