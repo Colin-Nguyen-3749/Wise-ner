@@ -36,12 +36,36 @@
                         <br><br>
                         <label>
                             Start Time:<br>
-                            <input type="time" id="event-start">
+                            <div class="clock-dropdown">
+                                <input type="text" id="event-start" readonly placeholder="Select time" autocomplete="off">
+                                <div class="clock-picker-box" id="start-clock-picker-box" style="display:none;">
+                                    <div class="clock-picker" id="start-clock-picker"></div>
+                                    <div class="clock-picker-controls">
+                                        <input type="text" id="start-manual" maxlength="5" placeholder="hh:mm">
+                                        <div class="ampm-group">
+                                            <button type="button" class="ampm-btn" data-ampm="AM" id="start-am">AM</button>
+                                            <button type="button" class="ampm-btn" data-ampm="PM" id="start-pm">PM</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </label>
                         <br><br>
                         <label>
                             End Time:<br>
-                            <input type="time" id="event-end">
+                            <div class="clock-dropdown">
+                                <input type="text" id="event-end" readonly placeholder="Select time" autocomplete="off">
+                                <div class="clock-picker-box" id="end-clock-picker-box" style="display:none;">
+                                    <div class="clock-picker" id="end-clock-picker"></div>
+                                    <div class="clock-picker-controls">
+                                        <input type="text" id="end-manual" maxlength="5" placeholder="hh:mm">
+                                        <div class="ampm-group">
+                                            <button type="button" class="ampm-btn" data-ampm="AM" id="end-am">AM</button>
+                                            <button type="button" class="ampm-btn" data-ampm="PM" id="end-pm">PM</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </label>
                         <br><br>
                         <button type="submit">Add Event</button>

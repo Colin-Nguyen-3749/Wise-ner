@@ -219,5 +219,148 @@ document.addEventListener('DOMContentLoaded', function() {
             nameInput.focus();
         });
     }
+
+    function setupClockDropdown(inputId, pickerId, boxId, manualId, amId, pmId) {
+        var input = document.getElementById(inputId);
+        var picker = document.getElementById(pickerId);
+        var box = document.getElementById(boxId);
+        var manual = document.getElementById(manualId);
+        var amBtn = document.getElementById(amId);
+        var pmBtn = document.getElementById(pmId);
+        if (!input || !picker || !box || !manual || !amBtn || !pmBtn) return;
+
+        let mode = 'hour'; // 'hour' or 'minute'
+        let hour = 12, minute = 0, ampm = 'AM';
+
+        function setInputValue() {
+            let h = hour < 10 ? '0' + hour : hour;
+            let m = minute < 10 ? '0' + minute : minute;
+            input.value = `${h}:${m} ${ampm}`;
+        }
+
+        function renderClock() {
+            picker.innerHTML = '';
+            picker.style.opacity = 1;
+
+            // Draw labels
+            if (mode === 'hour') {
+                for (let i = 1; i <= 12; i++) {
+                    let angle = (i * 30 - 90) * Math.PI / 180;
+                    let x = 70 * Math.cos(angle);
+                    let y = 70 * Math.sin(angle);
+                    let label = document.createElement('div');
+                    label.className = 'clock-label' + (hour === i ? ' selected' : '');
+                    label.style.left = (90 + x) + 'px';
+                    label.style.top = (90 + y) + 'px';
+                    label.textContent = i;
+                    label.addEventListener('click', function(e) {
+                        hour = i;
+                        mode = 'minute';
+                        renderClock();
+                    });
+                    picker.appendChild(label);
+                }
+            } else {
+                for (let i = 0; i < 60; i += 5) {
+                    let angle = (i * 6 - 90) * Math.PI / 180;
+                    let x = 70 * Math.cos(angle);
+                    let y = 70 * Math.sin(angle);
+                    let label = document.createElement('div');
+                    label.className = 'clock-label' + (minute === i ? ' selected' : '');
+                    label.style.left = (90 + x) + 'px';
+                    label.style.top = (90 + y) + 'px';
+                    label.textContent = (i < 10 ? '0' : '') + i;
+                    label.addEventListener('click', function(e) {
+                        minute = i;
+                        setInputValue();
+                        box.classList.remove('active');
+                    });
+                    picker.appendChild(label);
+                }
+            }
+
+            // Draw hands
+            if (mode === 'hour') {
+                let hourHand = document.createElement('div');
+                hourHand.className = 'clock-hour-hand';
+                hourHand.style.transform = 'rotate(' + ((hour % 12) * 30) + 'deg)';
+                picker.appendChild(hourHand);
+            } else {
+                let minuteHand = document.createElement('div');
+                minuteHand.className = 'clock-minute-hand';
+                minuteHand.style.transform = 'rotate(' + (minute * 6) + 'deg)';
+                picker.appendChild(minuteHand);
+            }
+
+            // Center dot (click to reset)
+            let centerDot = document.createElement('div');
+            centerDot.className = 'clock-center-dot';
+            centerDot.title = 'Reset';
+            centerDot.addEventListener('click', function(e) {
+                mode = 'hour';
+                renderClock();
+            });
+            picker.appendChild(centerDot);
+
+            // Footer for switching back to hour selection (only in minute mode)
+            if (mode === 'minute') {
+                let footer = document.createElement('div');
+                footer.className = 'clock-picker-footer';
+                footer.textContent = 'Change hour';
+                footer.addEventListener('click', function(e) {
+                    mode = 'hour';
+                    renderClock();
+                });
+                picker.appendChild(footer);
+            }
+        }
+
+        input.addEventListener('click', function(e) {
+            box.style.display = 'flex';
+            setTimeout(function() {
+                box.classList.add('active');
+            }, 10);
+            mode = 'hour';
+            renderClock();
+        });
+
+        // Manual input logic
+        manual.addEventListener('input', function() {
+            let val = manual.value.trim();
+            let match = /^(\d{1,2}):(\d{2})$/.exec(val);
+            if (match) {
+                let h = parseInt(match[1], 10);
+                let m = parseInt(match[2], 10);
+                if (h >= 1 && h <= 12 && m >= 0 && m < 60) {
+                    hour = h;
+                    minute = m;
+                    setInputValue();
+                }
+            }
+        });
+
+        // AM/PM selection logic
+        function setAMPM(selected) {
+            ampm = selected;
+            amBtn.classList.toggle('selected', ampm === 'AM');
+            pmBtn.classList.toggle('selected', ampm === 'PM');
+            setInputValue();
+        }
+        amBtn.addEventListener('click', function() { setAMPM('AM'); });
+        pmBtn.addEventListener('click', function() { setAMPM('PM'); });
+
+        // Hide clock picker when clicking outside
+        document.addEventListener('mousedown', function(e) {
+            if (!box.contains(e.target) && e.target !== input) {
+                box.classList.remove('active');
+                setTimeout(function() {
+                    box.style.display = 'none';
+                }, 250);
+            }
+        });
+    }
+
+    setupClockDropdown('event-start', 'start-clock-picker', 'start-clock-picker-box', 'start-manual', 'start-am', 'start-pm');
+    setupClockDropdown('event-end', 'end-clock-picker', 'end-clock-picker-box', 'end-manual', 'end-am', 'end-pm');
 });
 
