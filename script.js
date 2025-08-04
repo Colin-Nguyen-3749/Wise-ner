@@ -238,6 +238,14 @@ document.addEventListener('DOMContentLoaded', function() {
             input.value = `${h}:${m} ${ampm}`;
         }
 
+        function getAngleFromEvent(e, center) {
+            let x = (e.touches ? e.touches[0].clientX : e.clientX) - center.x;
+            let y = (e.touches ? e.touches[0].clientY : e.clientY) - center.y;
+            let angle = Math.atan2(y, x) * 180 / Math.PI;
+            angle = (angle + 360 + 90) % 360; // 0 is top
+            return angle;
+        }
+
         function renderClock() {
             picker.innerHTML = '';
             picker.style.opacity = 1;
@@ -253,12 +261,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     label.style.left = (90 + x) + 'px';
                     label.style.top = (90 + y) + 'px';
                     label.textContent = i;
-                    // Switch to minute mode on mouseup (release click)
                     label.addEventListener('mousedown', function(e) {
                         hour = i;
+                        setInputValue();
                     });
                     label.addEventListener('mouseup', function(e) {
                         hour = i;
+                        setInputValue();
                         mode = 'minute';
                         renderClock();
                     });
@@ -266,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 for (let i = 0; i < 60; i += 5) {
+                    // Only display five-minute intervals
                     let angle = (i * 6 - 90) * Math.PI / 180;
                     let x = 70 * Math.cos(angle);
                     let y = 70 * Math.sin(angle);
@@ -274,7 +284,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     label.style.left = (90 + x) + 'px';
                     label.style.top = (90 + y) + 'px';
                     label.textContent = (i < 10 ? '0' : '') + i;
-                    label.addEventListener('click', function(e) {
+                    label.addEventListener('mousedown', function(e) {
+                        minute = i;
+                        setInputValue();
+                    });
+                    label.addEventListener('mouseup', function(e) {
                         minute = i;
                         setInputValue();
                         box.classList.remove('active');
@@ -289,11 +303,71 @@ document.addEventListener('DOMContentLoaded', function() {
                 hourHand.className = 'clock-hour-hand';
                 hourHand.style.transform = 'rotate(' + ((hour % 12) * 30) + 'deg)';
                 picker.appendChild(hourHand);
+
+                // Make hour hand draggable
+                hourHand.style.cursor = 'pointer';
+                let dragging = false;
+                hourHand.addEventListener('mousedown', function(e) {
+                    dragging = true;
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', function(e) {
+                    if (dragging) {
+                        let rect = picker.getBoundingClientRect();
+                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let angle = getAngleFromEvent(e, center);
+                        let h = Math.round(angle / 30) || 12;
+                        hour = h > 12 ? h - 12 : h;
+                        setInputValue();
+                        hourHand.style.transform = 'rotate(' + ((hour % 12) * 30) + 'deg)';
+                        picker.querySelectorAll('.clock-label').forEach(function(label) {
+                            label.classList.toggle('selected', parseInt(label.textContent) === hour);
+                        });
+                    }
+                });
+                document.addEventListener('mouseup', function(e) {
+                    if (dragging) {
+                        dragging = false;
+                        mode = 'minute';
+                        renderClock();
+                    }
+                });
             } else {
                 let minuteHand = document.createElement('div');
                 minuteHand.className = 'clock-minute-hand';
                 minuteHand.style.transform = 'rotate(' + (minute * 6) + 'deg)';
                 picker.appendChild(minuteHand);
+
+                // Make minute hand draggable
+                minuteHand.style.cursor = 'pointer';
+                let dragging = false;
+                minuteHand.addEventListener('mousedown', function(e) {
+                    dragging = true;
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', function(e) {
+                    if (dragging) {
+                        let rect = picker.getBoundingClientRect();
+                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let angle = getAngleFromEvent(e, center);
+                        let m = Math.round(angle / 6) % 60;
+                        // Snap to nearest 5-minute interval
+                        m = Math.round(m / 5) * 5;
+                        minute = m < 0 ? m + 60 : m;
+                        setInputValue();
+                        minuteHand.style.transform = 'rotate(' + (minute * 6) + 'deg)';
+                        picker.querySelectorAll('.clock-label').forEach(function(label) {
+                            label.classList.toggle('selected', parseInt(label.textContent) === minute);
+                        });
+                    }
+                });
+                document.addEventListener('mouseup', function(e) {
+                    if (dragging) {
+                        dragging = false;
+                        setInputValue();
+                        box.classList.remove('active');
+                    }
+                });
             }
 
             // Center dot (click to reset)
@@ -355,13 +429,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setupClockDropdown('event-start', 'start-clock-picker', 'start-clock-picker-box', 'start-manual', 'start-am', 'start-pm');
     setupClockDropdown('event-end', 'end-clock-picker', 'end-clock-picker-box', 'end-manual', 'end-am', 'end-pm');
 });
-            if (!box.contains(e.target) && e.target !== input) {
-                box.classList.remove('active');
-                setTimeout(function() {
-                    box.style.display = 'none';
-                }, 250);
-            }
-
-    setupClockDropdown('event-start', 'start-clock-picker', 'start-clock-picker-box', 'start-manual', 'start-am', 'start-pm');
-    setupClockDropdown('event-end', 'end-clock-picker', 'end-clock-picker-box', 'end-manual', 'end-am', 'end-pm');
 
