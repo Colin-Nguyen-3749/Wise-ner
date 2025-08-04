@@ -115,21 +115,22 @@ h1 {
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
-    gap: 1.5rem; /* reduced gap */
+    gap: 0.5rem; /* minimal gap between calendar and side panel */
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .legend-container,
 .event-create-container {
-    min-width: 340px;
-    max-width: 420px;
+    min-width: 320px;
+    max-width: 400px;
     background: #e7e7e7;
     border-radius: 8px;
     padding: 2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    font-size: 1.12em;
-    margin-left: auto;
+    font-size: 1.08em;
+    margin-left: 1rem;    /* add space to left */
+    margin-right: 0;      /* remove right margin */
 }
 
 .legend-container h2 {
