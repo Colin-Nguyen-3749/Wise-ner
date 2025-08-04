@@ -253,7 +253,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     label.style.left = (90 + x) + 'px';
                     label.style.top = (90 + y) + 'px';
                     label.textContent = i;
-                    label.addEventListener('click', function(e) {
+                    // Switch to minute mode on mouseup (release click)
+                    label.addEventListener('mousedown', function(e) {
+                        hour = i;
+                    });
+                    label.addEventListener('mouseup', function(e) {
                         hour = i;
                         mode = 'minute';
                         renderClock();
