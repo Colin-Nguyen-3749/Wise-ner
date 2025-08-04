@@ -449,10 +449,9 @@ h1 {
     font-weight: bold;
 }
 
+/* Remove the clock-picker-footer from display */
 .clock-picker-footer {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
+    display: none !important;
     transform: translateX(-50%);
     font-size: 0.95em;
     color: #1976d2;
@@ -463,4 +462,5 @@ h1 {
     z-index: 10;
     user-select: none;
 }
+    
 

@@ -305,18 +305,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderClock();
             });
             picker.appendChild(centerDot);
-
-            // Footer for switching back to hour selection (only in minute mode)
-            if (mode === 'minute') {
-                let footer = document.createElement('div');
-                footer.className = 'clock-picker-footer';
-                footer.textContent = 'Change hour';
-                footer.addEventListener('click', function(e) {
-                    mode = 'hour';
-                    renderClock();
-                });
-                picker.appendChild(footer);
-            }
         }
 
         input.addEventListener('click', function(e) {
@@ -367,4 +355,13 @@ document.addEventListener('DOMContentLoaded', function() {
     setupClockDropdown('event-start', 'start-clock-picker', 'start-clock-picker-box', 'start-manual', 'start-am', 'start-pm');
     setupClockDropdown('event-end', 'end-clock-picker', 'end-clock-picker-box', 'end-manual', 'end-am', 'end-pm');
 });
+            if (!box.contains(e.target) && e.target !== input) {
+                box.classList.remove('active');
+                setTimeout(function() {
+                    box.style.display = 'none';
+                }, 250);
+            }
+
+    setupClockDropdown('event-start', 'start-clock-picker', 'start-clock-picker-box', 'start-manual', 'start-am', 'start-pm');
+    setupClockDropdown('event-end', 'end-clock-picker', 'end-clock-picker-box', 'end-manual', 'end-am', 'end-pm');
 
