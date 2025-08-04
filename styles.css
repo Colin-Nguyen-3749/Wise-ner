@@ -115,19 +115,20 @@ h1 {
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
-    gap: 3rem;
+    gap: 1.5rem; /* reduced gap */
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.legend-container {
-    min-width: 220px;
-    max-width: 260px;
+.legend-container,
+.event-create-container {
+    min-width: 340px;
+    max-width: 420px;
     background: #e7e7e7;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    font-size: 1em;
+    font-size: 1.12em;
     margin-left: auto;
 }
 
@@ -243,17 +244,6 @@ h1 {
     border: 2px solid #1976d2;
 }
 
-.event-create-container {
-    min-width: 220px;
-    max-width: 260px;
-    background: #f7f7f7;
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    font-size: 1em;
-    margin-left: auto;
-}
-
 .event-create-container h2 {
     margin-top: 0;
     font-size: 1.2em;
@@ -281,6 +271,16 @@ h1 {
     cursor: pointer;
     transition: background 0.2s;
 }
+
+#create-event-form button[type="submit"]:hover {
+    background: #1565c0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+    
 
 #create-event-form button[type="submit"]:hover {
     background: #1565c0;
