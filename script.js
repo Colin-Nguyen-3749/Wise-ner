@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
-        // Prevent any action on day click
         dateClick: function(info) {
             // Do nothing
         },
@@ -23,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Remove previous listeners to avoid duplicates
                     cell.onmouseenter = null;
                     cell.onmouseleave = null;
+                    cell.onclick = null;
 
                     cell.addEventListener('mouseenter', function() {
                         cell.classList.add('linger-hover');
@@ -35,6 +35,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             cell.classList.remove('linger-hover');
                             cell.classList.remove('linger-fade');
                         }, 400); // matches CSS transition duration
+                    });
+
+                    // Smooth transition to single day view on click
+                    cell.addEventListener('click', function(e) {
+                        var dateStr = cell.getAttribute('data-date');
+                        var calView = calendarEl.querySelector('.fc-view-harness');
+                        if (calView) {
+                            calView.style.transition = 'transform 0.4s cubic-bezier(.4,2,.3,1), opacity 0.4s';
+                            calView.style.transform = 'scale(0.95)';
+                            calView.style.opacity = '0.5';
+                            setTimeout(function() {
+                                calendar.changeView('timeGridDay', dateStr);
+                                setTimeout(function() {
+                                    calView.style.transform = 'scale(1)';
+                                    calView.style.opacity = '1';
+                                }, 10);
+                            }, 400);
+                        } else {
+                            calendar.changeView('timeGridDay', dateStr);
+                        }
                     });
                 });
             }, 0);
