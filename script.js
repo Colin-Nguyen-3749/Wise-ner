@@ -237,10 +237,12 @@ document.addEventListener('DOMContentLoaded', function() {
         let hour = 12, minute = 0, ampm = 'AM';
 
         function setInputValue() {
-            // Don't pad with zero, just use the number as is
-            if (targetInput) targetInput.value = `${hour}:${minute} ${ampm}`;
+            // Format minute with leading zero if needed for target input
+            let formattedMinute = minute < 10 ? '0' + minute : minute;
+            if (targetInput) targetInput.value = `${hour}:${formattedMinute} ${ampm}`;
             hourInput.value = hour;
-            minuteInput.value = minute;
+            // Format minute input with leading zero for single digits
+            minuteInput.value = minute < 10 ? '0' + minute : minute;
         }
 
         function renderClock() {
