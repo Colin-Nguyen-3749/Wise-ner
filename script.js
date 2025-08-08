@@ -266,8 +266,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Draw hour labels (1-12) in a perfect circle, center each label box on the circle
                 for (let i = 1; i <= 12; i++) {
                     let angle = (i - 3) * (Math.PI * 2) / 12;
-                    let x = centerX + hourRadius * Math.cos(angle) - 16; // 16 = width/2
-                    let y = centerY + hourRadius * Math.sin(angle) - 16; // 16 = height/2
+                    let x = centerX + hourRadius * Math.cos(angle) - 16;
+                    let y = centerY + hourRadius * Math.sin(angle) - 16;
                     let label = document.createElement('div');
                     label.className = 'clock-label' + (hour === i ? ' selected' : '');
                     label.style.left = `${x}px`;
@@ -290,34 +290,90 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Draw hands
-            if (mode === 'hour') {
-                let hourHand = document.createElement('div');
-                hourHand.className = 'clock-hour-hand';
-                hourHand.style.position = 'absolute';
-                hourHand.style.left = '50%';
-                hourHand.style.bottom = '50%';
-                hourHand.style.width = '6px';
-                hourHand.style.height = '60px';
-                hourHand.style.background = '#1976d2';
-                hourHand.style.transformOrigin = 'bottom';
-                hourHand.style.borderRadius = '3px';
-                hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
-                hourHand.style.zIndex = '10';
-                hourHand.style.cursor = 'pointer';
-                picker.appendChild(hourHand);
+            // Draw both hands for aesthetics, but only one is interactive at a time
+            // --- HOUR HAND ---
+            let hourAngleDeg = (hour % 12) * 30 - 90;
+            let hourAngleRad = hourAngleDeg * Math.PI / 180;
+            let hourHandLength = hourRadius - 12;
+            let hourEndX = centerX + hourHandLength * Math.cos(hourAngleRad);
+            let hourEndY = centerY + hourHandLength * Math.sin(hourAngleRad);
 
+            let hourHand = document.createElement('div');
+            hourHand.className = 'clock-hour-hand';
+            hourHand.style.position = 'absolute';
+            hourHand.style.left = '0';
+            hourHand.style.top = '0';
+            hourHand.style.width = '220px';
+            hourHand.style.height = '220px';
+            hourHand.style.background = 'none';
+            hourHand.style.zIndex = '10';
+            hourHand.style.cursor = 'pointer';
+            hourHand.style.pointerEvents = 'auto';
+            hourHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                <line x1="${centerX}" y1="${centerY}" x2="${hourEndX}" y2="${hourEndY}" stroke="#1976d2" stroke-width="6" stroke-linecap="round"/>
+            </svg>`;
+            picker.appendChild(hourHand);
+
+            let hourCircle = document.createElement('div');
+            hourCircle.className = 'clock-hand-circle';
+            hourCircle.style.left = `${hourEndX - 12}px`;
+            hourCircle.style.top = `${hourEndY - 12}px`;
+            picker.appendChild(hourCircle);
+
+            // --- MINUTE HAND ---
+            let minuteAngleDeg = minute * 6 - 90;
+            let minuteAngleRad = minuteAngleDeg * Math.PI / 180;
+            let minuteHandLength = minuteRadius - 10;
+            let minuteEndX = centerX + minuteHandLength * Math.cos(minuteAngleRad);
+            let minuteEndY = centerY + minuteHandLength * Math.sin(minuteAngleRad);
+
+            let minuteHand = document.createElement('div');
+            minuteHand.className = 'clock-minute-hand';
+            minuteHand.style.position = 'absolute';
+            minuteHand.style.left = '0';
+            minuteHand.style.top = '0';
+            minuteHand.style.width = '220px';
+            minuteHand.style.height = '220px';
+            minuteHand.style.background = 'none';
+            minuteHand.style.zIndex = '9';
+            minuteHand.style.cursor = 'pointer';
+            minuteHand.style.pointerEvents = 'auto';
+            minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                <line x1="${centerX}" y1="${centerY}" x2="${minuteEndX}" y2="${minuteEndY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+            </svg>`;
+            picker.appendChild(minuteHand);
+
+            let minuteCircle = document.createElement('div');
+            minuteCircle.className = 'clock-hand-circle minute';
+            minuteCircle.style.left = `${minuteEndX - 10}px`;
+            minuteCircle.style.top = `${minuteEndY - 10}px`;
+            picker.appendChild(minuteCircle);
+
+            // Only allow interaction with the active hand
+            if (mode === 'hour') {
+                hourHand.style.zIndex = '20';
+                hourCircle.style.zIndex = '21';
+                minuteHand.style.opacity = '0.3';
+                minuteCircle.style.opacity = '0.3';
                 // Drag logic for hour hand
                 let draggingHour = false;
                 function onHourDrag(e) {
                     if (draggingHour) {
                         let rect = picker.getBoundingClientRect();
-                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let center = { x: rect.left + centerX, y: rect.top + centerY };
                         let angle = getAngleFromEvent(e, center);
                         let h = Math.round(angle / 30) || 12;
                         hour = h > 12 ? h - 12 : h;
                         setInputValue();
-                        hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
+                        let angleDeg = (hour % 12) * 30 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + hourHandLength * Math.cos(angleRad);
+                        let endY = centerY + hourHandLength * Math.sin(angleRad);
+                        hourHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#1976d2" stroke-width="6" stroke-linecap="round"/>
+                        </svg>`;
+                        hourCircle.style.left = `${endX - 12}px`;
+                        hourCircle.style.top = `${endY - 12}px`;
                         picker.querySelectorAll('.clock-label').forEach(function(label) {
                             label.classList.toggle('selected', parseInt(label.textContent) === hour);
                         });
@@ -328,7 +384,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         draggingHour = false;
                         document.removeEventListener('mousemove', onHourDrag);
                         document.removeEventListener('mouseup', onHourUp);
-                        // Switch to minute mode after releasing hour hand
                         mode = 'minute';
                         renderClock();
                     }
@@ -345,7 +400,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     label.addEventListener('mousedown', function(e) {
                         hour = parseInt(label.textContent);
                         setInputValue();
-                        hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
+                        let angleDeg = (hour % 12) * 30 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + hourHandLength * Math.cos(angleRad);
+                        let endY = centerY + hourHandLength * Math.sin(angleRad);
+                        hourHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#1976d2" stroke-width="6" stroke-linecap="round"/>
+                        </svg>`;
+                        hourCircle.style.left = `${endX - 12}px`;
+                        hourCircle.style.top = `${endY - 12}px`;
                         picker.querySelectorAll('.clock-label').forEach(function(l) {
                             l.classList.toggle('selected', parseInt(l.textContent) === hour);
                         });
@@ -358,33 +421,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 });
             } else {
-                let minuteHand = document.createElement('div');
-                minuteHand.className = 'clock-minute-hand';
-                minuteHand.style.position = 'absolute';
-                minuteHand.style.left = '50%';
-                minuteHand.style.bottom = '50%';
-                minuteHand.style.width = '4px';
-                minuteHand.style.height = '90px';
-                minuteHand.style.background = '#4caf50';
-                minuteHand.style.transformOrigin = 'bottom';
-                minuteHand.style.borderRadius = '2px';
-                minuteHand.style.transform = `rotate(${minute * 6}deg)`;
-                minuteHand.style.zIndex = '9';
-                minuteHand.style.cursor = 'pointer';
-                picker.appendChild(minuteHand);
-
+                minuteHand.style.zIndex = '20';
+                minuteCircle.style.zIndex = '21';
+                hourHand.style.opacity = '0.3';
+                hourCircle.style.opacity = '0.3';
                 // Drag logic for minute hand
                 let draggingMinute = false;
                 function onMinuteDrag(e) {
                     if (draggingMinute) {
                         let rect = picker.getBoundingClientRect();
-                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let center = { x: rect.left + centerX, y: rect.top + centerY };
                         let angle = getAngleFromEvent(e, center);
                         let m = Math.round(angle / 6) % 60;
                         m = m < 0 ? m + 60 : m;
                         minute = m;
                         setInputValue();
-                        minuteHand.style.transform = `rotate(${minute * 6}deg)`;
+                        let angleDeg = minute * 6 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                        </svg>`;
+                        minuteCircle.style.left = `${endX - 10}px`;
+                        minuteCircle.style.top = `${endY - 10}px`;
                         picker.querySelectorAll('.clock-label').forEach(function(label) {
                             label.classList.toggle('selected', parseInt(label.textContent) === minute);
                         });
@@ -409,7 +469,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     label.addEventListener('mousedown', function(e) {
                         minute = parseInt(label.textContent);
                         setInputValue();
-                        minuteHand.style.transform = `rotate(${minute * 6}deg)`;
+                        let angleDeg = minute * 6 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                        </svg>`;
+                        minuteCircle.style.left = `${endX - 10}px`;
+                        minuteCircle.style.top = `${endY - 10}px`;
                         picker.querySelectorAll('.clock-label').forEach(function(l) {
                             l.classList.toggle('selected', parseInt(l.textContent) === minute);
                         });
