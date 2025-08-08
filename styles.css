@@ -345,6 +345,22 @@ h1 {
     user-select: none;
 }
 
+.clock-face {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 220px;
+    height: 220px;
+    border: 2px solid #1976d2;
+    border-radius: 50%;
+    box-sizing: border-box;
+    background: transparent;
+    z-index: 1;
+    /* Add a thin, modern outline */
+    outline: 1.5px solid #1976d2;
+    outline-offset: -2px;
+}
+
 .clock-picker-controls {
     width: 100%;
     display: flex;
@@ -461,6 +477,31 @@ h1 {
     cursor: pointer;
     z-index: 10;
     user-select: none;
+}
+
+.clock-label {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    text-align: center;
+    line-height: 32px;
+    font-size: 1em;
+    color: #333;
+    /* Remove left/top/transform, use only for centering text in the box */
+    /* left: 50%; */
+    /* top: 50%; */
+    /* transform: translate(-50%, -50%); */
+    cursor: pointer;
+    z-index: 4;
+    background: transparent;
+    border-radius: 50%;
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+    pointer-events: auto;
+    /* Center text in the box */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 

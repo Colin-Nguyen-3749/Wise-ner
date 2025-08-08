@@ -254,42 +254,38 @@ document.addEventListener('DOMContentLoaded', function() {
             // Draw clock face (circle + ticks)
             let face = document.createElement('div');
             face.className = 'clock-face';
-            face.style.position = 'absolute';
-            face.style.left = '0';
-            face.style.top = '0';
-            face.style.width = '100%';
-            face.style.height = '100%';
             picker.appendChild(face);
 
+            // Center for calculations
+            const centerX = 110;
+            const centerY = 110;
+            const hourRadius = 80;
+            const minuteRadius = 90;
+
             if (mode === 'hour') {
-                // Draw hour labels (1-12)
+                // Draw hour labels (1-12) in a perfect circle, center each label box on the circle
                 for (let i = 1; i <= 12; i++) {
-                    let angle = (i * 30 - 90) * Math.PI / 180;
-                    let x = 110 + 90 * Math.cos(angle);
-                    let y = 110 + 90 * Math.sin(angle);
+                    let angle = (i - 3) * (Math.PI * 2) / 12;
+                    let x = centerX + hourRadius * Math.cos(angle) - 16; // 16 = width/2
+                    let y = centerY + hourRadius * Math.sin(angle) - 16; // 16 = height/2
                     let label = document.createElement('div');
                     label.className = 'clock-label' + (hour === i ? ' selected' : '');
-                    label.style.left = x + 'px';
-                    label.style.top = y + 'px';
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
                     label.textContent = i;
-                    label.style.position = 'absolute';
-                    label.style.userSelect = 'none';
                     picker.appendChild(label);
                 }
             } else {
-                // Draw minute labels (00, 05, 10, ..., 55)
+                // Draw minute labels (00, 05, ..., 55) in a perfect circle, center each label box on the circle
                 for (let i = 0; i < 60; i += 5) {
-                    let angle = (i * 6 - 90) * Math.PI / 180;
-                    let x = 110 + 90 * Math.cos(angle);
-                    let y = 110 + 90 * Math.sin(angle);
+                    let angle = (i / 5 - 3) * (Math.PI * 2) / 12;
+                    let x = centerX + minuteRadius * Math.cos(angle) - 16;
+                    let y = centerY + minuteRadius * Math.sin(angle) - 16;
                     let label = document.createElement('div');
                     label.className = 'clock-label' + (minute === i ? ' selected' : '');
-                    label.style.left = x + 'px';
-                    label.style.top = y + 'px';
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
                     label.textContent = (i < 10 ? '0' : '') + i;
-                    label.style.position = 'absolute';
-                    label.style.userSelect = 'none';
-                    label.style.fontSize = '1em';
                     picker.appendChild(label);
                 }
             }
