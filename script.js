@@ -237,12 +237,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let hour = 12, minute = 0, ampm = 'AM';
 
         function setInputValue() {
-            let h = hour < 10 ? '0' + hour : hour;
-            let m = minute < 10 ? '0' + minute : minute;
-            if (targetInput) targetInput.value = `${h}:${m} ${ampm}`;
-            // reflect to text boxes
-            hourInput.value = h;
-            minuteInput.value = m;
+            // Don't pad with zero, just use the number as is
+            if (targetInput) targetInput.value = `${hour}:${minute} ${ampm}`;
+            hourInput.value = hour;
+            minuteInput.value = minute;
         }
 
         function renderClock() {
@@ -521,7 +519,10 @@ document.addEventListener('DOMContentLoaded', function() {
             let val = hourInput.value.replace(/\D/g, '');
             if (val.length > 2) val = val.slice(0, 2);
             let h = parseInt(val, 10);
-            if (!isNaN(h) && h >= 1 && h <= 12) {
+            if (!isNaN(h)) {
+                // Wrap around for >12
+                while (h > 12) h -= 12;
+                if (h < 1) h = 1;
                 hour = h;
                 setInputValue();
                 if (mode !== 'hour') {
@@ -537,7 +538,10 @@ document.addEventListener('DOMContentLoaded', function() {
             let val = minuteInput.value.replace(/\D/g, '');
             if (val.length > 2) val = val.slice(0, 2);
             let m = parseInt(val, 10);
-            if (!isNaN(m) && m >= 0 && m < 60) {
+            if (!isNaN(m)) {
+                // Wrap around for >59
+                while (m > 59) m -= 60;
+                if (m < 0) m = 0;
                 minute = m;
                 setInputValue();
                 if (mode !== 'minute') {
