@@ -261,68 +261,165 @@ document.addEventListener('DOMContentLoaded', function() {
             face.style.height = '100%';
             picker.appendChild(face);
 
-            // Draw hour labels
-            for (let i = 1; i <= 12; i++) {
-                let angle = (i * 30 - 90) * Math.PI / 180;
-                let x = 110 + 90 * Math.cos(angle);
-                let y = 110 + 90 * Math.sin(angle);
-                let label = document.createElement('div');
-                label.className = 'clock-label' + (hour === i ? ' selected' : '');
-                label.style.left = x + 'px';
-                label.style.top = y + 'px';
-                label.textContent = i;
-                label.style.position = 'absolute';
-                label.style.userSelect = 'none';
-                picker.appendChild(label);
+            if (mode === 'hour') {
+                // Draw hour labels (1-12)
+                for (let i = 1; i <= 12; i++) {
+                    let angle = (i * 30 - 90) * Math.PI / 180;
+                    let x = 110 + 90 * Math.cos(angle);
+                    let y = 110 + 90 * Math.sin(angle);
+                    let label = document.createElement('div');
+                    label.className = 'clock-label' + (hour === i ? ' selected' : '');
+                    label.style.left = x + 'px';
+                    label.style.top = y + 'px';
+                    label.textContent = i;
+                    label.style.position = 'absolute';
+                    label.style.userSelect = 'none';
+                    picker.appendChild(label);
+                }
+            } else {
+                // Draw minute labels (00, 05, 10, ..., 55)
+                for (let i = 0; i < 60; i += 5) {
+                    let angle = (i * 6 - 90) * Math.PI / 180;
+                    let x = 110 + 90 * Math.cos(angle);
+                    let y = 110 + 90 * Math.sin(angle);
+                    let label = document.createElement('div');
+                    label.className = 'clock-label' + (minute === i ? ' selected' : '');
+                    label.style.left = x + 'px';
+                    label.style.top = y + 'px';
+                    label.textContent = (i < 10 ? '0' : '') + i;
+                    label.style.position = 'absolute';
+                    label.style.userSelect = 'none';
+                    label.style.fontSize = '1em';
+                    picker.appendChild(label);
+                }
             }
 
-            // Draw minute labels (every 5 min)
-            for (let i = 0; i < 60; i += 5) {
-                let angle = (i * 6 - 90) * Math.PI / 180;
-                let x = 110 + 70 * Math.cos(angle);
-                let y = 110 + 70 * Math.sin(angle);
-                let label = document.createElement('div');
-                label.className = 'clock-label' + (minute === i ? ' selected' : '');
-                label.style.left = x + 'px';
-                label.style.top = y + 'px';
-                label.textContent = (i < 10 ? '0' : '') + i;
-                label.style.position = 'absolute';
-                label.style.fontSize = '0.9em';
-                label.style.userSelect = 'none';
-                picker.appendChild(label);
+            // Draw hands
+            if (mode === 'hour') {
+                let hourHand = document.createElement('div');
+                hourHand.className = 'clock-hour-hand';
+                hourHand.style.position = 'absolute';
+                hourHand.style.left = '50%';
+                hourHand.style.bottom = '50%';
+                hourHand.style.width = '6px';
+                hourHand.style.height = '60px';
+                hourHand.style.background = '#1976d2';
+                hourHand.style.transformOrigin = 'bottom';
+                hourHand.style.borderRadius = '3px';
+                hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
+                hourHand.style.zIndex = '10';
+                hourHand.style.cursor = 'pointer';
+                picker.appendChild(hourHand);
+
+                // Drag logic for hour hand
+                let draggingHour = false;
+                function onHourDrag(e) {
+                    if (draggingHour) {
+                        let rect = picker.getBoundingClientRect();
+                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let angle = getAngleFromEvent(e, center);
+                        let h = Math.round(angle / 30) || 12;
+                        hour = h > 12 ? h - 12 : h;
+                        setInputValue();
+                        hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
+                        picker.querySelectorAll('.clock-label').forEach(function(label) {
+                            label.classList.toggle('selected', parseInt(label.textContent) === hour);
+                        });
+                    }
+                }
+                function onHourUp(e) {
+                    if (draggingHour) {
+                        draggingHour = false;
+                        document.removeEventListener('mousemove', onHourDrag);
+                        document.removeEventListener('mouseup', onHourUp);
+                        // Switch to minute mode after releasing hour hand
+                        mode = 'minute';
+                        renderClock();
+                    }
+                }
+                hourHand.addEventListener('mousedown', function(e) {
+                    draggingHour = true;
+                    e.preventDefault();
+                    document.addEventListener('mousemove', onHourDrag);
+                    document.addEventListener('mouseup', onHourUp);
+                });
+
+                // Click on hour labels to set hour and switch to minute mode
+                picker.querySelectorAll('.clock-label').forEach(function(label) {
+                    label.addEventListener('mousedown', function(e) {
+                        hour = parseInt(label.textContent);
+                        setInputValue();
+                        hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
+                        picker.querySelectorAll('.clock-label').forEach(function(l) {
+                            l.classList.toggle('selected', parseInt(l.textContent) === hour);
+                        });
+                    });
+                    label.addEventListener('mouseup', function(e) {
+                        hour = parseInt(label.textContent);
+                        setInputValue();
+                        mode = 'minute';
+                        renderClock();
+                    });
+                });
+            } else {
+                let minuteHand = document.createElement('div');
+                minuteHand.className = 'clock-minute-hand';
+                minuteHand.style.position = 'absolute';
+                minuteHand.style.left = '50%';
+                minuteHand.style.bottom = '50%';
+                minuteHand.style.width = '4px';
+                minuteHand.style.height = '90px';
+                minuteHand.style.background = '#4caf50';
+                minuteHand.style.transformOrigin = 'bottom';
+                minuteHand.style.borderRadius = '2px';
+                minuteHand.style.transform = `rotate(${minute * 6}deg)`;
+                minuteHand.style.zIndex = '9';
+                minuteHand.style.cursor = 'pointer';
+                picker.appendChild(minuteHand);
+
+                // Drag logic for minute hand
+                let draggingMinute = false;
+                function onMinuteDrag(e) {
+                    if (draggingMinute) {
+                        let rect = picker.getBoundingClientRect();
+                        let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                        let angle = getAngleFromEvent(e, center);
+                        let m = Math.round(angle / 6) % 60;
+                        m = m < 0 ? m + 60 : m;
+                        minute = m;
+                        setInputValue();
+                        minuteHand.style.transform = `rotate(${minute * 6}deg)`;
+                        picker.querySelectorAll('.clock-label').forEach(function(label) {
+                            label.classList.toggle('selected', parseInt(label.textContent) === minute);
+                        });
+                    }
+                }
+                function onMinuteUp(e) {
+                    if (draggingMinute) {
+                        draggingMinute = false;
+                        document.removeEventListener('mousemove', onMinuteDrag);
+                        document.removeEventListener('mouseup', onMinuteUp);
+                    }
+                }
+                minuteHand.addEventListener('mousedown', function(e) {
+                    draggingMinute = true;
+                    e.preventDefault();
+                    document.addEventListener('mousemove', onMinuteDrag);
+                    document.addEventListener('mouseup', onMinuteUp);
+                });
+
+                // Click on minute labels to set minute
+                picker.querySelectorAll('.clock-label').forEach(function(label) {
+                    label.addEventListener('mousedown', function(e) {
+                        minute = parseInt(label.textContent);
+                        setInputValue();
+                        minuteHand.style.transform = `rotate(${minute * 6}deg)`;
+                        picker.querySelectorAll('.clock-label').forEach(function(l) {
+                            l.classList.toggle('selected', parseInt(l.textContent) === minute);
+                        });
+                    });
+                });
             }
-
-            // Draw hour hand
-            let hourHand = document.createElement('div');
-            hourHand.className = 'clock-hour-hand';
-            hourHand.style.position = 'absolute';
-            hourHand.style.left = '50%';
-            hourHand.style.bottom = '50%';
-            hourHand.style.width = '6px';
-            hourHand.style.height = '60px';
-            hourHand.style.background = '#1976d2';
-            hourHand.style.transformOrigin = 'bottom';
-            hourHand.style.borderRadius = '3px';
-            hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
-            hourHand.style.zIndex = '10';
-            hourHand.style.cursor = 'pointer';
-            picker.appendChild(hourHand);
-
-            // Draw minute hand
-            let minuteHand = document.createElement('div');
-            minuteHand.className = 'clock-minute-hand';
-            minuteHand.style.position = 'absolute';
-            minuteHand.style.left = '50%';
-            minuteHand.style.bottom = '50%';
-            minuteHand.style.width = '4px';
-            minuteHand.style.height = '90px';
-            minuteHand.style.background = '#4caf50';
-            minuteHand.style.transformOrigin = 'bottom';
-            minuteHand.style.borderRadius = '2px';
-            minuteHand.style.transform = `rotate(${minute * 6}deg)`;
-            minuteHand.style.zIndex = '9';
-            minuteHand.style.cursor = 'pointer';
-            picker.appendChild(minuteHand);
 
             // Draw center dot
             let centerDot = document.createElement('div');
@@ -341,104 +438,11 @@ document.addEventListener('DOMContentLoaded', function() {
             centerDot.addEventListener('click', function(e) {
                 hour = 12;
                 minute = 0;
+                mode = 'hour';
                 setInputValue();
                 renderClock();
             });
             picker.appendChild(centerDot);
-
-            // Drag logic for hour hand
-            let draggingHour = false;
-            function onHourDrag(e) {
-                if (draggingHour) {
-                    let rect = picker.getBoundingClientRect();
-                    let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                    let angle = getAngleFromEvent(e, center);
-                    let h = Math.round(angle / 30) || 12;
-                    hour = h > 12 ? h - 12 : h;
-                    setInputValue();
-                    hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
-                    picker.querySelectorAll('.clock-label').forEach(function(label) {
-                        if (label.textContent.length <= 2) return; // skip minute labels
-                        label.classList.toggle('selected', parseInt(label.textContent) === hour);
-                    });
-                }
-            }
-            function onHourUp(e) {
-                if (draggingHour) {
-                    draggingHour = false;
-                    document.removeEventListener('mousemove', onHourDrag);
-                    document.removeEventListener('mouseup', onHourUp);
-                }
-            }
-            hourHand.addEventListener('mousedown', function(e) {
-                draggingHour = true;
-                e.preventDefault();
-                document.addEventListener('mousemove', onHourDrag);
-                document.addEventListener('mouseup', onHourUp);
-            });
-
-            // Drag logic for minute hand
-            let draggingMinute = false;
-            function onMinuteDrag(e) {
-                if (draggingMinute) {
-                    let rect = picker.getBoundingClientRect();
-                    let center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                    let angle = getAngleFromEvent(e, center);
-                    let m = Math.round(angle / 6) % 60;
-                    m = m < 0 ? m + 60 : m;
-                    minute = m;
-                    setInputValue();
-                    minuteHand.style.transform = `rotate(${minute * 6}deg)`;
-                    picker.querySelectorAll('.clock-label').forEach(function(label) {
-                        if (label.textContent.length === 2) {
-                            label.classList.toggle('selected', parseInt(label.textContent) === minute);
-                        }
-                    });
-                }
-            }
-            function onMinuteUp(e) {
-                if (draggingMinute) {
-                    draggingMinute = false;
-                    document.removeEventListener('mousemove', onMinuteDrag);
-                    document.removeEventListener('mouseup', onMinuteUp);
-                }
-            }
-            minuteHand.addEventListener('mousedown', function(e) {
-                draggingMinute = true;
-                e.preventDefault();
-                document.addEventListener('mousemove', onMinuteDrag);
-                document.addEventListener('mouseup', onMinuteUp);
-            });
-
-            // Click on hour labels to set hour
-            picker.querySelectorAll('.clock-label').forEach(function(label) {
-                if (label.textContent.length <= 2) return; // skip minute labels
-                label.addEventListener('mousedown', function(e) {
-                    hour = parseInt(label.textContent);
-                    setInputValue();
-                    hourHand.style.transform = `rotate(${(hour % 12) * 30}deg)`;
-                    picker.querySelectorAll('.clock-label').forEach(function(l) {
-                        if (l.textContent.length <= 2) return;
-                        l.classList.toggle('selected', parseInt(l.textContent) === hour);
-                    });
-                });
-            });
-
-            // Click on minute labels to set minute
-            picker.querySelectorAll('.clock-label').forEach(function(label) {
-                if (label.textContent.length === 2) {
-                    label.addEventListener('mousedown', function(e) {
-                        minute = parseInt(label.textContent);
-                        setInputValue();
-                        minuteHand.style.transform = `rotate(${minute * 6}deg)`;
-                        picker.querySelectorAll('.clock-label').forEach(function(l) {
-                            if (l.textContent.length === 2) {
-                                l.classList.toggle('selected', parseInt(l.textContent) === minute);
-                            }
-                        });
-                    });
-                }
-            });
         }
 
         // Show modal logic
