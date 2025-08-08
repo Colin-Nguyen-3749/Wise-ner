@@ -224,7 +224,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalOverlay = document.getElementById('clock-modal-overlay');
         const modalContent = document.getElementById('clock-modal-content');
         const picker = document.getElementById('clock-modal-picker');
-        const manual = document.getElementById('clock-modal-manual');
+        // --- new hour/minute inputs ---
+        const hourInput = document.getElementById('clock-modal-hour');
+        const minuteInput = document.getElementById('clock-modal-minute');
+        // --- end new ---
         const amBtn = document.getElementById('clock-modal-am');
         const pmBtn = document.getElementById('clock-modal-pm');
         const okayBtn = document.getElementById('clock-modal-okay');
@@ -237,14 +240,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let h = hour < 10 ? '0' + hour : hour;
             let m = minute < 10 ? '0' + minute : minute;
             if (targetInput) targetInput.value = `${h}:${m} ${ampm}`;
-        }
-
-        function getAngleFromEvent(e, center) {
-            let x = (e.touches ? e.touches[0].clientX : e.clientX) - center.x;
-            let y = (e.touches ? e.touches[0].clientY : e.clientY) - center.y;
-            let angle = Math.atan2(y, x) * 180 / Math.PI;
-            angle = (angle + 360 + 90) % 360; // 0 is top
-            return angle;
+            // reflect to text boxes
+            hourInput.value = h;
+            minuteInput.value = m;
         }
 
         function renderClock() {
@@ -509,6 +507,57 @@ document.addEventListener('DOMContentLoaded', function() {
             picker.appendChild(centerDot);
         }
 
+        // --- new: input box logic for hour/minute switching and syncing ---
+        hourInput.addEventListener('focus', function() {
+            mode = 'hour';
+            renderClock();
+        });
+        minuteInput.addEventListener('focus', function() {
+            mode = 'minute';
+            renderClock();
+        });
+
+        hourInput.addEventListener('input', function() {
+            let val = hourInput.value.replace(/\D/g, '');
+            if (val.length > 2) val = val.slice(0, 2);
+            let h = parseInt(val, 10);
+            if (!isNaN(h) && h >= 1 && h <= 12) {
+                hour = h;
+                setInputValue();
+                if (mode !== 'hour') {
+                    mode = 'hour';
+                    renderClock();
+                } else {
+                    renderClock();
+                }
+            }
+        });
+
+        minuteInput.addEventListener('input', function() {
+            let val = minuteInput.value.replace(/\D/g, '');
+            if (val.length > 2) val = val.slice(0, 2);
+            let m = parseInt(val, 10);
+            if (!isNaN(m) && m >= 0 && m < 60) {
+                minute = m;
+                setInputValue();
+                if (mode !== 'minute') {
+                    mode = 'minute';
+                    renderClock();
+                } else {
+                    renderClock();
+                }
+            }
+        });
+        // --- end new ---
+
+        function getAngleFromEvent(e, center) {
+            let x = (e.touches ? e.touches[0].clientX : e.clientX) - center.x;
+            let y = (e.touches ? e.touches[0].clientY : e.clientY) - center.y;
+            let angle = Math.atan2(y, x) * 180 / Math.PI;
+            angle = (angle + 360 + 90) % 360; // 0 is top
+            return angle;
+        }
+
         // Show modal logic
         const startInput = document.getElementById(startInputId);
         const endInput = document.getElementById(endInputId);
@@ -516,11 +565,24 @@ document.addEventListener('DOMContentLoaded', function() {
         function showModal(target) {
             targetInput = target;
             modalOverlay.classList.add('active');
-            hour = 12;
-            minute = 0;
-            ampm = 'AM';
-            renderClock();
+            // Parse value if present
+            let val = targetInput.value.trim();
+            let match = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec(val);
+            if (match) {
+                let h = parseInt(match[1], 10);
+                let m = parseInt(match[2], 10);
+                let ap = match[3] ? match[3].toUpperCase() : 'AM';
+                if (h >= 1 && h <= 12 && m >= 0 && m < 60) {
+                    hour = h;
+                    minute = m;
+                    ampm = ap;
+                }
+            } else {
+                hour = 12; minute = 0; ampm = 'AM';
+            }
             setInputValue();
+            mode = 'hour';
+            renderClock();
         }
 
         startInput.addEventListener('focus', function() {

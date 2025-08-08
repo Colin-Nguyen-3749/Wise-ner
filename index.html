@@ -53,7 +53,11 @@
             <div class="clock-modal-content" id="clock-modal-content">
                 <div class="clock-picker" id="clock-modal-picker"></div>
                 <div class="clock-picker-controls">
-                    <input type="text" id="clock-modal-manual" maxlength="5" placeholder="hh:mm">
+                    <div class="clock-time-inputs">
+                        <input type="text" id="clock-modal-hour" maxlength="2" placeholder="hh" autocomplete="off">
+                        <span class="clock-time-sep">:</span>
+                        <input type="text" id="clock-modal-minute" maxlength="2" placeholder="mm" autocomplete="off">
+                    </div>
                     <div class="ampm-group">
                         <button type="button" class="ampm-btn" data-ampm="AM" id="clock-modal-am">AM</button>
                         <button type="button" class="ampm-btn" data-ampm="PM" id="clock-modal-pm">PM</button>
