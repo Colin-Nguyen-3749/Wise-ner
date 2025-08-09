@@ -85,16 +85,50 @@ document.addEventListener('DOMContentLoaded', function() {
             if (title) {
                 var start = date;
                 var end = date;
+                
+                function parseTime(timeStr) {
+                    if (!timeStr) return null;
+                    // Handle AM/PM format: "12:30 PM" or "1:45 AM"
+                    var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                    if (match) {
+                        var h = parseInt(match[1], 10);
+                        var m = parseInt(match[2], 10);
+                        var ampm = match[3].toUpperCase();
+                        
+                        // Convert to 24-hour format
+                        if (ampm === 'PM' && h !== 12) {
+                            h += 12;
+                        } else if (ampm === 'AM' && h === 12) {
+                            h = 0;
+                        }
+                        
+                        return { hours: h, minutes: m };
+                    }
+                    
+                    // Fallback: try 24-hour format "14:30"
+                    var parts = timeStr.split(':');
+                    if (parts.length === 2) {
+                        return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
+                    }
+                    
+                    return null;
+                }
+                
                 if (startTime) {
-                    start = new Date(date);
-                    var [h, m] = startTime.split(':');
-                    start.setHours(h, m, 0, 0);
+                    var startParsed = parseTime(startTime);
+                    if (startParsed) {
+                        start = new Date(date);
+                        start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                    }
                 }
                 if (endTime) {
-                    end = new Date(date);
-                    var [h, m] = endTime.split(':');
-                    end.setHours(h, m, 0, 0);
+                    var endParsed = parseTime(endTime);
+                    if (endParsed) {
+                        end = new Date(date);
+                        end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                    }
                 }
+                
                 calendar.addEvent({
                     title: title,
                     start: start,
@@ -224,10 +258,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalOverlay = document.getElementById('clock-modal-overlay');
         const modalContent = document.getElementById('clock-modal-content');
         const picker = document.getElementById('clock-modal-picker');
-        // --- new hour/minute inputs ---
         const hourInput = document.getElementById('clock-modal-hour');
         const minuteInput = document.getElementById('clock-modal-minute');
-        // --- end new ---
         const amBtn = document.getElementById('clock-modal-am');
         const pmBtn = document.getElementById('clock-modal-pm');
         const okayBtn = document.getElementById('clock-modal-okay');
@@ -243,6 +275,12 @@ document.addEventListener('DOMContentLoaded', function() {
             hourInput.value = hour;
             // Format minute input with leading zero for single digits
             minuteInput.value = minute < 10 ? '0' + minute : minute;
+            
+            // Update AM/PM button states
+            if (amBtn && pmBtn) {
+                amBtn.classList.toggle('selected', ampm === 'AM');
+                pmBtn.classList.toggle('selected', ampm === 'PM');
+            }
         }
 
         function renderClock() {
@@ -522,8 +560,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (val.length > 2) val = val.slice(0, 2);
             let h = parseInt(val, 10);
             if (!isNaN(h)) {
-                // Wrap around for >12
-                while (h > 12) h -= 12;
+                // Keep within 1-12 range for 12-hour format
+                if (h > 12) h = 12;
                 if (h < 1) h = 1;
                 hour = h;
                 setInputValue();
@@ -606,30 +644,33 @@ document.addEventListener('DOMContentLoaded', function() {
             modalOverlay.classList.remove('active');
         });
 
-        // Manual input logic
-        manual.addEventListener('input', function() {
-            let val = manual.value.trim();
-            let match = /^(\d{1,2}):(\d{2})$/.exec(val);
-            if (match) {
-                let h = parseInt(match[1], 10);
-                let m = parseInt(match[2], 10);
-                if (h >= 1 && h <= 12 && m >= 0 && m < 60) {
-                    hour = h;
-                    minute = m;
-                    setInputValue();
-                }
-            }
-        });
-
         // AM/PM selection logic
         function setAMPM(selected) {
             ampm = selected;
-            amBtn.classList.toggle('selected', ampm === 'AM');
-            pmBtn.classList.toggle('selected', ampm === 'PM');
-            setInputValue();
+            setInputValue(); // This will update both the target input and button states
         }
-        amBtn.addEventListener('click', function() { setAMPM('AM'); });
-        pmBtn.addEventListener('click', function() { setAMPM('PM'); });
+        
+        // Add click effects and event listeners
+        if (amBtn && pmBtn) {
+            amBtn.addEventListener('click', function() { 
+                amBtn.style.transform = 'scale(0.95)';
+                amBtn.style.transition = 'transform 0.1s ease';
+                setTimeout(() => { 
+                    amBtn.style.transform = ''; 
+                    amBtn.style.transition = '';
+                }, 100);
+                setAMPM('AM'); 
+            });
+            pmBtn.addEventListener('click', function() { 
+                pmBtn.style.transform = 'scale(0.95)';
+                pmBtn.style.transition = 'transform 0.1s ease';
+                setTimeout(() => { 
+                    pmBtn.style.transform = ''; 
+                    pmBtn.style.transition = '';
+                }, 100);
+                setAMPM('PM'); 
+            });
+        }
 
         // Hide modal when clicking outside content
         modalOverlay.addEventListener('mousedown', function(e) {
