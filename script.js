@@ -566,7 +566,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (h > 12) h = 12;
                 if (h < 1) h = 1;
                 hour = h;
-                setInputValue();
+                
+                // Update target input immediately
+                if (targetInput) {
+                    let formattedMinute = minute < 10 ? '0' + minute : minute;
+                    targetInput.value = `${hour}:${formattedMinute} ${ampm}`;
+                }
+                
+                // Update AM/PM button states
+                if (amBtn && pmBtn) {
+                    amBtn.classList.toggle('selected', ampm === 'AM');
+                    pmBtn.classList.toggle('selected', ampm === 'PM');
+                }
+                
                 if (mode !== 'hour') {
                     mode = 'hour';
                     renderClock();
@@ -732,6 +744,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalOverlay.classList.remove('active');
             }
         });
+    }
+
+    // Add validation message functions
+    function showValidationMessage(message) {
+        clearValidationMessage();
+        const validationDiv = document.createElement('div');
+        validationDiv.id = 'minute-validation-message';
+        validationDiv.style.cssText = `
+            position: absolute;
+            background: #ff9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            top: 100%;
+            left: 0;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-top: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        `;
+        validationDiv.textContent = message;
+        
+        // Position relative to minute input
+        if (minuteInput && minuteInput.parentNode) {
+            minuteInput.parentNode.style.position = 'relative';
+            minuteInput.parentNode.appendChild(validationDiv);
+        }
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            clearValidationMessage();
+        }, 3000);
+    }
+    
+    function clearValidationMessage() {
+        const existing = document.getElementById('minute-validation-message');
+        if (existing) {
+            existing.remove();
+        }
     }
 
     setupClockModal('event-start', 'event-end');
