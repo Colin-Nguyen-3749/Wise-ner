@@ -272,9 +272,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Format minute with leading zero if needed for target input
             let formattedMinute = minute < 10 ? '0' + minute : minute;
             if (targetInput) targetInput.value = `${hour}:${formattedMinute} ${ampm}`;
-            hourInput.value = hour;
-            // Format minute input with leading zero for single digits
-            minuteInput.value = minute < 10 ? '0' + minute : minute;
+            if (hourInput) hourInput.value = hour;
+            // Only update minute input if it's not currently being edited
+            if (minuteInput && document.activeElement !== minuteInput) {
+                minuteInput.value = formattedMinute;
+            }
             
             // Update AM/PM button states
             if (amBtn && pmBtn) {
@@ -575,15 +577,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         minuteInput.addEventListener('input', function() {
-            let val = minuteInput.value.replace(/\D/g, '');
+            let val = this.value.replace(/\D/g, '');
             if (val.length > 2) val = val.slice(0, 2);
+            
+            // Update the input field with the cleaned value
+            this.value = val;
+            
+            // Clear any existing validation message
+            clearValidationMessage();
+            
+            if (val === '') {
+                // Allow empty field - don't update minute variable yet
+                return;
+            }
+            
             let m = parseInt(val, 10);
             if (!isNaN(m)) {
-                // Wrap around for >59
-                while (m > 59) m -= 60;
-                if (m < 0) m = 0;
+                // Clamp to valid minute range (0-59)
+                if (m > 59) {
+                    m = 59;
+                    this.value = '59';
+                    showValidationMessage('Maximum value is 59');
+                } else if (m < 0) {
+                    m = 0;
+                    this.value = '00';
+                } else {
+                    // Show formatting hint only for single digits that aren't being actively typed
+                    if (val.length === 1 && m > 0) {
+                        showValidationMessage('Must be formatted as xx (e.g., 05, 15, 30)');
+                    }
+                }
+                
                 minute = m;
-                setInputValue();
+                // Only update target input, not the minute input field itself
+                if (targetInput) {
+                    let formattedMinute = minute < 10 ? '0' + minute : minute;
+                    targetInput.value = `${hour}:${formattedMinute} ${ampm}`;
+                }
+                
+                // Update AM/PM button states
+                if (amBtn && pmBtn) {
+                    amBtn.classList.toggle('selected', ampm === 'AM');
+                    pmBtn.classList.toggle('selected', ampm === 'PM');
+                }
+                
                 if (mode !== 'minute') {
                     mode = 'minute';
                     renderClock();
@@ -592,7 +629,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-        // --- end new ---
+        
+        // Handle when user finishes editing minute field
+        minuteInput.addEventListener('blur', function() {
+            // Auto-format single digits with leading zero when user finishes
+            let val = this.value.trim();
+            if (val.length === 1 && parseInt(val, 10) >= 0) {
+                this.value = '0' + val;
+                minute = parseInt(val, 10);
+                if (targetInput) {
+                    let formattedMinute = minute < 10 ? '0' + minute : minute;
+                    targetInput.value = `${hour}:${formattedMinute} ${ampm}`;
+                }
+            }
+            
+            setTimeout(() => {
+                clearValidationMessage();
+            }, 200);
+        });
 
         function getAngleFromEvent(e, center) {
             let x = (e.touches ? e.touches[0].clientX : e.clientX) - center.x;
