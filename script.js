@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var startTime = document.getElementById('event-start').value;
             var endTime = document.getElementById('event-end').value;
             var categorySelect = document.getElementById('event-category');
+            var emailInput = document.getElementById('event-email');
             var date = calendar.view.currentStart; // current day in view
 
             if (title) {
@@ -141,6 +142,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
+                // Get email if provided
+                var contactEmail = emailInput ? emailInput.value.trim() : '';
+                
                 calendar.addEvent({
                     title: title,
                     start: start,
@@ -150,7 +154,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     borderColor: eventColor,
                     textColor: '#ffffff',
                     extendedProps: {
-                        category: categoryName
+                        category: categoryName,
+                        email: contactEmail
                     }
                 });
                 createEventForm.reset();
@@ -223,9 +228,32 @@ document.addEventListener('DOMContentLoaded', function() {
         categorySelect.style.borderRadius = '4px';
         categorySelect.style.border = '1px solid #ccc';
         
+        // Create email input elements
+        var emailLabel = document.createElement('label');
+        emailLabel.textContent = 'Contact Email:';
+        emailLabel.style.display = 'block';
+        emailLabel.style.marginTop = '8px';
+        emailLabel.style.marginBottom = '4px';
+        emailLabel.style.fontWeight = 'bold';
+        
+        var emailInput = document.createElement('input');
+        emailInput.type = 'email';
+        emailInput.id = 'event-email';
+        emailInput.placeholder = 'Enter contact email';
+        emailInput.required = true;
+        emailInput.style.width = '100%';
+        emailInput.style.boxSizing = 'border-box';
+        emailInput.style.fontSize = '1em';
+        emailInput.style.marginBottom = '8px';
+        emailInput.style.padding = '4px 8px';
+        emailInput.style.borderRadius = '4px';
+        emailInput.style.border = '1px solid #ccc';
+        
         // Insert before submit button
         form.insertBefore(categoryLabel, submitButton);
         form.insertBefore(categorySelect, submitButton);
+        form.insertBefore(emailLabel, submitButton);
+        form.insertBefore(emailInput, submitButton);
         
         // Initial population
         updateCategoryDropdown();
