@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var title = document.getElementById('event-title').value.trim();
             var startTime = document.getElementById('event-start').value;
             var endTime = document.getElementById('event-end').value;
+            var categorySelect = document.getElementById('event-category');
             var date = calendar.view.currentStart; // current day in view
 
             if (title) {
@@ -129,13 +130,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
+                // Get selected category color
+                var eventColor = '#3788d8'; // default blue
+                var categoryName = 'Default';
+                if (categorySelect && categorySelect.value) {
+                    var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                    if (selectedOption.dataset.color) {
+                        eventColor = selectedOption.dataset.color;
+                        categoryName = selectedOption.textContent;
+                    }
+                }
+                
                 calendar.addEvent({
                     title: title,
                     start: start,
                     end: endTime ? end : undefined,
-                    allDay: !startTime && !endTime
+                    allDay: !startTime && !endTime,
+                    backgroundColor: eventColor,
+                    borderColor: eventColor,
+                    textColor: '#ffffff',
+                    extendedProps: {
+                        category: categoryName
+                    }
                 });
                 createEventForm.reset();
+                updateCategoryDropdown(); // Reset dropdown to default
             }
         });
     }
@@ -143,6 +162,77 @@ document.addEventListener('DOMContentLoaded', function() {
     // Legend functionality
     var legendList = document.getElementById('legend-list');
     var addKeyBtn = document.getElementById('add-key-btn');
+
+    // Function to update the category dropdown with current legend items
+    function updateCategoryDropdown() {
+        var categorySelect = document.getElementById('event-category');
+        if (!categorySelect) {
+            // Create the dropdown if it doesn't exist
+            createCategoryDropdown();
+            categorySelect = document.getElementById('event-category');
+        }
+        
+        // Clear existing options except default
+        categorySelect.innerHTML = '<option value="">No Category (Default)</option>';
+        
+        // Add options from legend
+        if (legendList) {
+            var legendItems = legendList.querySelectorAll('li');
+            legendItems.forEach(function(li) {
+                var colorCircle = li.querySelector('.legend-color-circle');
+                var nameText = li.querySelector('.legend-name-text');
+                
+                if (colorCircle && nameText) {
+                    var option = document.createElement('option');
+                    option.value = nameText.textContent;
+                    option.textContent = nameText.textContent;
+                    option.dataset.color = colorCircle.style.background;
+                    categorySelect.appendChild(option);
+                }
+            });
+        }
+    }
+    
+    // Function to create the category dropdown
+    function createCategoryDropdown() {
+        var eventCreateContainer = document.getElementById('event-create-container');
+        if (!eventCreateContainer) return;
+        
+        var form = eventCreateContainer.querySelector('form');
+        if (!form) return;
+        
+        // Find the submit button to insert before it
+        var submitButton = form.querySelector('button[type="submit"]');
+        if (!submitButton) return;
+        
+        // Create category selection elements
+        var categoryLabel = document.createElement('label');
+        categoryLabel.textContent = 'Category:';
+        categoryLabel.style.display = 'block';
+        categoryLabel.style.marginTop = '8px';
+        categoryLabel.style.marginBottom = '4px';
+        categoryLabel.style.fontWeight = 'bold';
+        
+        var categorySelect = document.createElement('select');
+        categorySelect.id = 'event-category';
+        categorySelect.style.width = '100%';
+        categorySelect.style.boxSizing = 'border-box';
+        categorySelect.style.fontSize = '1em';
+        categorySelect.style.marginBottom = '8px';
+        categorySelect.style.padding = '4px 8px';
+        categorySelect.style.borderRadius = '4px';
+        categorySelect.style.border = '1px solid #ccc';
+        
+        // Insert before submit button
+        form.insertBefore(categoryLabel, submitButton);
+        form.insertBefore(categorySelect, submitButton);
+        
+        // Initial population
+        updateCategoryDropdown();
+    }
+    
+    // Create the dropdown when the page loads
+    createCategoryDropdown();
 
     if (addKeyBtn) {
         addKeyBtn.addEventListener('click', function() {
@@ -221,6 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     li.replaceChild(nameSpan, nameInput);
+                    updateCategoryDropdown(); // Update dropdown when legend item is added
                 }
             });
 
@@ -243,6 +334,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     li.replaceChild(nameSpan, nameInput);
+                    updateCategoryDropdown(); // Update dropdown when legend item is added
+                }
+            });
+
+            // Add delete functionality with right-click or delete key
+            li.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                if (confirm('Delete this legend item?')) {
+                    li.remove();
+                    updateCategoryDropdown(); // Update dropdown when legend item is removed
                 }
             });
 
