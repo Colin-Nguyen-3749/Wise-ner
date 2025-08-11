@@ -7,10 +7,38 @@ document.addEventListener('DOMContentLoaded', function() {
         initialView: 'dayGridMonth',
         selectable: true,
         editable: true,
+        dayMaxEvents: false, // Disable event limit
+        dayMaxEventRows: false, // Disable row limit
+        moreLinkClick: 'popover', // Show popover when clicking more link
+        eventDisplay: 'list-item', // Use list display for dots
+        displayEventTime: false, // Don't show event times
+        displayEventEnd: false, // Don't show event end times
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        eventDidMount: function(info) {
+            // Replace event content with just a colored dot
+            if (calendar.view.type === 'dayGridMonth') {
+                info.el.innerHTML = '';
+                info.el.style.cssText = `
+                    width: 8px !important;
+                    height: 8px !important;
+                    border-radius: 50% !important;
+                    margin: 1px !important;
+                    padding: 0 !important;
+                    background-color: ${info.event.backgroundColor} !important;
+                    border: 1px solid ${info.event.borderColor || info.event.backgroundColor} !important;
+                    min-height: 8px !important;
+                    font-size: 0 !important;
+                    display: inline-block !important;
+                    position: relative !important;
+                `;
+                
+                // Add tooltip with event details
+                info.el.title = `${info.event.title}${info.event.start ? ' - ' + info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}`;
+            }
         },
         dateClick: function(info) {
             // Do nothing
