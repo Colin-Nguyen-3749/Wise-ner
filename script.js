@@ -127,6 +127,58 @@ document.addEventListener('DOMContentLoaded', function() {
             formTitle.textContent = 'Edit Event';
         }
         
+        // Add exit button if it doesn't exist
+        if (!document.getElementById('edit-exit-btn')) {
+            var exitButton = document.createElement('button');
+            exitButton.type = 'button';
+            exitButton.id = 'edit-exit-btn';
+            exitButton.innerHTML = '&times;';
+            exitButton.style.cssText = `
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                font-weight: bold;
+                color: #666;
+                cursor: pointer;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: background-color 0.2s, color 0.2s;
+                z-index: 10;
+            `;
+            
+            exitButton.addEventListener('click', function() {
+                resetEventForm();
+                // Return to appropriate view based on current calendar view
+                if (calendar.view.type === 'timeGridDay') {
+                    // Stay in day view but reset form
+                } else {
+                    // Go back to month view or previous view
+                    calendar.changeView('dayGridMonth');
+                }
+            });
+            
+            exitButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f0f0f0';
+                this.style.color = '#333';
+            });
+            
+            exitButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'transparent';
+                this.style.color = '#666';
+            });
+            
+            // Make the event container positioned relative for absolute positioning
+            eventCreateContainer.style.position = 'relative';
+            eventCreateContainer.appendChild(exitButton);
+        }
+        
         // Populate form with event data
         var titleInput = document.getElementById('event-title');
         var startInput = document.getElementById('event-start');
@@ -235,6 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var deleteButton = document.getElementById('delete-event-btn');
         if (deleteButton) {
             deleteButton.remove();
+        }
+        
+        // Remove exit button
+        var exitButton = document.getElementById('edit-exit-btn');
+        if (exitButton) {
+            exitButton.remove();
         }
         
         // Reset dropdown

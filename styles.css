@@ -125,13 +125,86 @@ h1 {
     gap: 1px !important;
 }
 
-/* Ensure day cells maintain consistent height */
-.fc-daygrid-day {
-    height: 120px !important;
-    min-height: 120px !important;
-    max-height: 120px !important;
-    overflow: hidden !important;
+/* Ensure day numbers are always visible and positioned correctly */
+.fc-daygrid-day-number {
     position: relative !important;
+    z-index: 2 !important;
+    padding: 2px 4px !important;
+    font-weight: 500 !important;
+}
+
+/* Style for day cells in other views (week, day) to show full event details */
+.fc-timegrid-event .fc-event-title,
+.fc-timegrid-event .fc-event-time,
+.fc-list-event .fc-event-title,
+.fc-list-event .fc-event-time {
+    display: block !important;
+}
+
+/* Hover effects for events in week and day views */
+.fc-timegrid-event {
+    transition: opacity 0.2s ease, filter 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.fc-timegrid-event:hover {
+    filter: brightness(0.85) !important;
+    opacity: 0.9 !important;
+}
+
+/* Also apply hover effect to list view events */
+.fc-list-event {
+    transition: background-color 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.fc-list-event:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Ensure hover effects don't apply to month view dots */
+.fc-daygrid-event:hover {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+.fc-daygrid-event {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    margin: 1px !important;
+    padding: 0 !important;
+    min-height: 8px !important;
+    font-size: 0 !important;
+    display: inline-block !important;
+    position: relative !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    cursor: pointer !important;
+}
+
+/* Hide event text content in month view */
+.fc-daygrid-event .fc-event-title,
+.fc-daygrid-event .fc-event-time {
+    display: none !important;
+}
+
+/* Style for the "more" link when there are many events */
+.fc-daygrid-more-link {
+    font-size: 0.75em !important;
+    color: #666 !important;
+    font-weight: normal !important;
+    cursor: pointer !important;
+    padding: 1px 3px !important;
+    border-radius: 2px !important;
+    background: rgba(0,0,0,0.05) !important;
+    margin: 1px !important;
+    display: inline-block !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+.fc-daygrid-more-link:hover {
+    background: rgba(0,0,0,0.1) !important;
 }
 
 /* Style for event dots in month view */
@@ -174,27 +247,6 @@ h1 {
     background: rgba(0,0,0,0.1) !important;
 }
 
-/* Ensure day numbers are always visible and positioned correctly */
-.fc-daygrid-day-number {
-    position: relative !important;
-    z-index: 2 !important;
-    padding: 2px 4px !important;
-    font-weight: 500 !important;
-}
-
-/* Style for day cells in other views (week, day) to show full event details */
-.fc-timegrid-event .fc-event-title,
-.fc-timegrid-event .fc-event-time,
-.fc-list-event .fc-event-title,
-.fc-list-event .fc-event-time {
-    display: block !important;
-}
-
-/* Remove custom scrollbars since we're not scrolling anymore */
-.fc-daygrid-day-events::-webkit-scrollbar {
-    display: none;
-}
-
 .main-content {
     display: flex;
     justify-content: flex-start;
@@ -215,6 +267,7 @@ h1 {
     font-size: 1.08em;
     margin-left: 1rem;    /* add space to left */
     margin-right: 0;      /* remove right margin */
+    position: relative;   /* Enable absolute positioning for child elements */
 }
 
 .legend-container h2 {
