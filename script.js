@@ -232,46 +232,10 @@ document.addEventListener('DOMContentLoaded', function() {
             descriptionInput.value = event.extendedProps.description;
         }
         
-        // Change submit button to update button and add delete button
+        // Set submit button to "Next" for step 1 in edit mode
         var submitButton = createEventForm.querySelector('button[type="submit"]');
         if (submitButton) {
-            submitButton.textContent = 'Update Event';
-        }
-        
-        // Add delete button if it doesn't exist
-        if (!document.getElementById('delete-event-btn')) {
-            var deleteButton = document.createElement('button');
-            deleteButton.type = 'button';
-            deleteButton.id = 'delete-event-btn';
-            deleteButton.textContent = 'Delete Event';
-            deleteButton.style.backgroundColor = '#dc3545';
-            deleteButton.style.color = '#fff';
-            deleteButton.style.border = 'none';
-            deleteButton.style.borderRadius = '4px';
-            deleteButton.style.padding = '6px 12px';
-            deleteButton.style.fontSize = '1em';
-            deleteButton.style.cursor = 'pointer';
-            deleteButton.style.marginLeft = '8px';
-            deleteButton.style.transition = 'background 0.2s';
-            
-            deleteButton.addEventListener('click', function() {
-                if (confirm('Are you sure you want to delete this event?')) {
-                    if (editingEvent) {
-                        editingEvent.remove();
-                        resetEventForm();
-                    }
-                }
-            });
-            
-            deleteButton.addEventListener('mouseenter', function() {
-                this.style.backgroundColor = '#c82333';
-            });
-            
-            deleteButton.addEventListener('mouseleave', function() {
-                this.style.backgroundColor = '#dc3545';
-            });
-            
-            submitButton.parentNode.appendChild(deleteButton);
+            submitButton.textContent = 'Next';
         }
         
         // Show the event create container
@@ -304,22 +268,30 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.textContent = 'Next';
         }
         
-        // Remove delete button
+        // Remove button container and all its buttons
+        var buttonContainer = document.getElementById('button-container');
+        if (buttonContainer) {
+            // Move submit button back to form before removing container
+            var form = createEventForm;
+            form.appendChild(submitButton);
+            buttonContainer.remove();
+        }
+        
+        // Remove individual buttons if they exist outside container
         var deleteButton = document.getElementById('delete-event-btn');
         if (deleteButton) {
             deleteButton.remove();
+        }
+        
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
         }
         
         // Remove exit button
         var exitButton = document.getElementById('edit-exit-btn');
         if (exitButton) {
             exitButton.remove();
-        }
-        
-        // Remove back button
-        var backButton = document.getElementById('back-btn');
-        if (backButton) {
-            backButton.remove();
         }
         
         // Reset dropdown
@@ -367,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.textContent = editingEvent ? 'Update Event' : 'Create Event';
         }
         
-        // Add back button
+        // Add back button with horizontal alignment
         if (!document.getElementById('back-btn')) {
             var backButton = document.createElement('button');
             backButton.type = 'button';
@@ -381,7 +353,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 padding: 6px 12px;
                 font-size: 1em;
                 cursor: pointer;
-                margin-right: 8px;
                 transition: background 0.2s;
             `;
             
@@ -397,7 +368,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.style.backgroundColor = '#6c757d';
             });
             
-            submitButton.parentNode.insertBefore(backButton, submitButton);
+            // Create button container for horizontal alignment
+            var buttonContainer = document.createElement('div');
+            buttonContainer.id = 'button-container';
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                margin-top: 8px;
+                align-items: center;
+            `;
+            
+            // Move submit button into container
+            var form = createEventForm;
+            form.insertBefore(buttonContainer, submitButton);
+            buttonContainer.appendChild(backButton);
+            buttonContainer.appendChild(submitButton);
+            
+            // Add delete button if in edit mode
+            if (editingEvent && !document.getElementById('delete-event-btn')) {
+                var deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.id = 'delete-event-btn';
+                deleteButton.textContent = 'Delete Event';
+                deleteButton.style.cssText = `
+                    background: #dc3545;
+                    color: #fff;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 6px 12px;
+                    font-size: 1em;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                `;
+                
+                deleteButton.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to delete this event?')) {
+                        if (editingEvent) {
+                            editingEvent.remove();
+                            resetEventForm();
+                        }
+                    }
+                });
+                
+                deleteButton.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#c82333';
+                });
+                
+                deleteButton.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#dc3545';
+                });
+                
+                buttonContainer.appendChild(deleteButton);
+            }
         }
     }
 
