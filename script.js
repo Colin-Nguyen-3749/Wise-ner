@@ -18,8 +18,14 @@ document.addEventListener('DOMContentLoaded', function() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
+        eventClick: function(info) {
+            // Only allow editing in day and week views
+            if (calendar.view.type === 'timeGridDay' || calendar.view.type === 'timeGridWeek') {
+                openEventEditModal(info.event);
+            }
+        },
         eventDidMount: function(info) {
-            // Replace event content with just a colored dot
+            // Replace event content with just a colored dot in month view
             if (calendar.view.type === 'dayGridMonth') {
                 info.el.innerHTML = '';
                 info.el.style.cssText = `
@@ -38,6 +44,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add tooltip with event details
                 info.el.title = `${info.event.title}${info.event.start ? ' - ' + info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}`;
+            } else {
+                // In day/week views, make events clickable
+                info.el.style.cursor = 'pointer';
+                info.el.title = 'Click to edit this event';
             }
         },
         dateClick: function(info) {
@@ -97,9 +107,139 @@ document.addEventListener('DOMContentLoaded', function() {
                     eventCreateContainer.style.display = 'none';
                 }
             }
+            
+            // Reset form when changing views
+            resetEventForm();
         }
     });
     calendar.render();
+
+    // Global variable to track if we're editing an event
+    var editingEvent = null;
+
+    // Function to open event edit modal
+    function openEventEditModal(event) {
+        editingEvent = event;
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Edit Event';
+        }
+        
+        // Populate form with event data
+        var titleInput = document.getElementById('event-title');
+        var startInput = document.getElementById('event-start');
+        var endInput = document.getElementById('event-end');
+        var categorySelect = document.getElementById('event-category');
+        var emailInput = document.getElementById('event-email');
+        
+        if (titleInput) titleInput.value = event.title || '';
+        
+        // Format times for display
+        if (event.start && startInput) {
+            var startTime = event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            startInput.value = startTime;
+        }
+        
+        if (event.end && endInput) {
+            var endTime = event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            endInput.value = endTime;
+        }
+        
+        // Set category if it exists
+        if (categorySelect && event.extendedProps && event.extendedProps.category) {
+            var categoryValue = event.extendedProps.category;
+            for (var i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].textContent === categoryValue) {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // Set email if it exists
+        if (emailInput && event.extendedProps && event.extendedProps.email) {
+            emailInput.value = event.extendedProps.email;
+        }
+        
+        // Change submit button to update button and add delete button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Update Event';
+        }
+        
+        // Add delete button if it doesn't exist
+        if (!document.getElementById('delete-event-btn')) {
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.id = 'delete-event-btn';
+            deleteButton.textContent = 'Delete Event';
+            deleteButton.style.backgroundColor = '#dc3545';
+            deleteButton.style.color = '#fff';
+            deleteButton.style.border = 'none';
+            deleteButton.style.borderRadius = '4px';
+            deleteButton.style.padding = '6px 12px';
+            deleteButton.style.fontSize = '1em';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.style.marginLeft = '8px';
+            deleteButton.style.transition = 'background 0.2s';
+            
+            deleteButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    if (editingEvent) {
+                        editingEvent.remove();
+                        resetEventForm();
+                    }
+                }
+            });
+            
+            deleteButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#c82333';
+            });
+            
+            deleteButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#dc3545';
+            });
+            
+            submitButton.parentNode.appendChild(deleteButton);
+        }
+        
+        // Show the event create container
+        if (legendContainer) legendContainer.style.display = 'none';
+        if (eventCreateContainer) eventCreateContainer.style.display = '';
+    }
+
+    // Function to reset the event form to create mode
+    function resetEventForm() {
+        editingEvent = null;
+        
+        // Reset form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Create Event';
+        }
+        
+        // Clear form
+        if (createEventForm) {
+            createEventForm.reset();
+        }
+        
+        // Reset submit button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Add Event';
+        }
+        
+        // Remove delete button
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.remove();
+        }
+        
+        // Reset dropdown
+        updateCategoryDropdown();
+    }
 
     // Handle event creation form submission
     if (createEventForm) {
@@ -110,84 +250,160 @@ document.addEventListener('DOMContentLoaded', function() {
             var endTime = document.getElementById('event-end').value;
             var categorySelect = document.getElementById('event-category');
             var emailInput = document.getElementById('event-email');
-            var date = calendar.view.currentStart; // current day in view
 
             if (title) {
-                var start = date;
-                var end = date;
-                
-                function parseTime(timeStr) {
-                    if (!timeStr) return null;
-                    // Handle AM/PM format: "12:30 PM" or "1:45 AM"
-                    var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-                    if (match) {
-                        var h = parseInt(match[1], 10);
-                        var m = parseInt(match[2], 10);
-                        var ampm = match[3].toUpperCase();
-                        
-                        // Convert to 24-hour format
-                        if (ampm === 'PM' && h !== 12) {
-                            h += 12;
-                        } else if (ampm === 'AM' && h === 12) {
-                            h = 0;
+                // Determine if we're editing or creating
+                if (editingEvent) {
+                    // Update existing event
+                    editingEvent.setProp('title', title);
+                    
+                    // Update times if provided
+                    if (startTime) {
+                        var startParsed = parseTime(startTime);
+                        if (startParsed) {
+                            var startDate = new Date(editingEvent.start);
+                            startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            editingEvent.setStart(startDate);
+                        }
+                    }
+                    
+                    if (endTime) {
+                        var endParsed = parseTime(endTime);
+                        if (endParsed) {
+                            var endDate = new Date(editingEvent.start);
+                            endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            editingEvent.setEnd(endDate);
+                        }
+                    }
+                    
+                    // Update category color
+                    var eventColor = '#3788d8'; // default blue
+                    var categoryName = 'Default';
+                    if (categorySelect && categorySelect.value) {
+                        var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                        if (selectedOption.dataset.color) {
+                            eventColor = selectedOption.dataset.color;
+                            categoryName = selectedOption.textContent;
+                        }
+                    }
+                    
+                    editingEvent.setProp('backgroundColor', eventColor);
+                    editingEvent.setProp('borderColor', eventColor);
+                    
+                    // Update extended properties
+                    var contactEmail = emailInput ? emailInput.value.trim() : '';
+                    editingEvent.setExtendedProp('category', categoryName);
+                    editingEvent.setExtendedProp('email', contactEmail);
+                    
+                    resetEventForm();
+                } else {
+                    // Create new event (existing code)
+                    var date = calendar.view.currentStart; // current day in view
+                    var start = date;
+                    var end = date;
+                    
+                    function parseTime(timeStr) {
+                        if (!timeStr) return null;
+                        // Handle AM/PM format: "12:30 PM" or "1:45 AM"
+                        var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                        if (match) {
+                            var h = parseInt(match[1], 10);
+                            var m = parseInt(match[2], 10);
+                            var ampm = match[3].toUpperCase();
+                            
+                            // Convert to 24-hour format
+                            if (ampm === 'PM' && h !== 12) {
+                                h += 12;
+                            } else if (ampm === 'AM' && h === 12) {
+                                h = 0;
+                            }
+                            
+                            return { hours: h, minutes: m };
                         }
                         
-                        return { hours: h, minutes: m };
+                        // Fallback: try 24-hour format "14:30"
+                        var parts = timeStr.split(':');
+                        if (parts.length === 2) {
+                            return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
+                        }
+                        
+                        return null;
                     }
                     
-                    // Fallback: try 24-hour format "14:30"
-                    var parts = timeStr.split(':');
-                    if (parts.length === 2) {
-                        return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
+                    if (startTime) {
+                        var startParsed = parseTime(startTime);
+                        if (startParsed) {
+                            start = new Date(date);
+                            start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                        }
+                    }
+                    if (endTime) {
+                        var endParsed = parseTime(endTime);
+                        if (endParsed) {
+                            end = new Date(date);
+                            end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                        }
                     }
                     
-                    return null;
+                    // Get selected category color
+                    var eventColor = '#3788d8'; // default blue
+                    var categoryName = 'Default';
+                    if (categorySelect && categorySelect.value) {
+                        var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                        if (selectedOption.dataset.color) {
+                            eventColor = selectedOption.dataset.color;
+                            categoryName = selectedOption.textContent;
+                        }
+                    }
+                    
+                    // Get email if provided
+                    var contactEmail = emailInput ? emailInput.value.trim() : '';
+                    
+                    calendar.addEvent({
+                        title: title,
+                        start: start,
+                        end: endTime ? end : undefined,
+                        allDay: !startTime && !endTime,
+                        backgroundColor: eventColor,
+                        borderColor: eventColor,
+                        textColor: '#ffffff',
+                        extendedProps: {
+                            category: categoryName,
+                            email: contactEmail
+                        }
+                    });
+                    createEventForm.reset();
+                    updateCategoryDropdown(); // Reset dropdown to default
+                }
+            }
+            
+            // Helper function to parse time (same as before)
+            function parseTime(timeStr) {
+                if (!timeStr) return null;
+                // Handle AM/PM format: "12:30 PM" or "1:45 AM"
+                var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                if (match) {
+                    var h = parseInt(match[1], 10);
+                    var m = parseInt(match[2], 10);
+                    var ampm = match[3].toUpperCase();
+                    
+                    // Convert to 24-hour format
+                    if (ampm === 'PM' && h !== 12) {
+                        h += 12;
+                    } else if (ampm === 'AM' && h === 12) {
+                        h = 0;
+                    }
+                    
+                    return { hours: h, minutes: m };
                 }
                 
-                if (startTime) {
-                    var startParsed = parseTime(startTime);
-                    if (startParsed) {
-                        start = new Date(date);
-                        start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
-                    }
-                }
-                if (endTime) {
-                    var endParsed = parseTime(endTime);
-                    if (endParsed) {
-                        end = new Date(date);
-                        end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
-                    }
+                // Fallback: try 24-hour format "14:30"
+                var parts = timeStr.split(':');
+                if (parts.length === 2) {
+                    return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
                 }
                 
-                // Get selected category color
-                var eventColor = '#3788d8'; // default blue
-                var categoryName = 'Default';
-                if (categorySelect && categorySelect.value) {
-                    var selectedOption = categorySelect.options[categorySelect.selectedIndex];
-                    if (selectedOption.dataset.color) {
-                        eventColor = selectedOption.dataset.color;
-                        categoryName = selectedOption.textContent;
-                    }
-                }
-                
-                // Get email if provided
-                var contactEmail = emailInput ? emailInput.value.trim() : '';
-                
-                calendar.addEvent({
-                    title: title,
-                    start: start,
-                    end: endTime ? end : undefined,
-                    allDay: !startTime && !endTime,
-                    backgroundColor: eventColor,
-                    borderColor: eventColor,
-                    textColor: '#ffffff',
-                    extendedProps: {
-                        category: categoryName,
-                        email: contactEmail
-                    }
-                });
-                createEventForm.reset();
-                updateCategoryDropdown(); // Reset dropdown to default
+                return null;
             }
         });
     }
@@ -234,54 +450,65 @@ document.addEventListener('DOMContentLoaded', function() {
         var form = eventCreateContainer.querySelector('form');
         if (!form) return;
         
+        // Check if elements already exist to prevent duplication
+        if (document.getElementById('event-category') && document.getElementById('event-email')) {
+            return; // Elements already exist, no need to create them again
+        }
+        
         // Find the submit button to insert before it
         var submitButton = form.querySelector('button[type="submit"]');
         if (!submitButton) return;
         
-        // Create category selection elements
-        var categoryLabel = document.createElement('label');
-        categoryLabel.textContent = 'Category:';
-        categoryLabel.style.display = 'block';
-        categoryLabel.style.marginTop = '8px';
-        categoryLabel.style.marginBottom = '4px';
-        categoryLabel.style.fontWeight = 'bold';
+        // Create category selection elements only if they don't exist
+        if (!document.getElementById('event-category')) {
+            var categoryLabel = document.createElement('label');
+            categoryLabel.textContent = 'Category:';
+            categoryLabel.style.display = 'block';
+            categoryLabel.style.marginTop = '8px';
+            categoryLabel.style.marginBottom = '4px';
+            categoryLabel.style.fontWeight = 'bold';
+            
+            var categorySelect = document.createElement('select');
+            categorySelect.id = 'event-category';
+            categorySelect.style.width = '100%';
+            categorySelect.style.boxSizing = 'border-box';
+            categorySelect.style.fontSize = '1em';
+            categorySelect.style.marginBottom = '8px';
+            categorySelect.style.padding = '4px 8px';
+            categorySelect.style.borderRadius = '4px';
+            categorySelect.style.border = '1px solid #ccc';
+            
+            // Insert before submit button
+            form.insertBefore(categoryLabel, submitButton);
+            form.insertBefore(categorySelect, submitButton);
+        }
         
-        var categorySelect = document.createElement('select');
-        categorySelect.id = 'event-category';
-        categorySelect.style.width = '100%';
-        categorySelect.style.boxSizing = 'border-box';
-        categorySelect.style.fontSize = '1em';
-        categorySelect.style.marginBottom = '8px';
-        categorySelect.style.padding = '4px 8px';
-        categorySelect.style.borderRadius = '4px';
-        categorySelect.style.border = '1px solid #ccc';
-        
-        // Create email input elements
-        var emailLabel = document.createElement('label');
-        emailLabel.textContent = 'Contact Email:';
-        emailLabel.style.display = 'block';
-        emailLabel.style.marginTop = '8px';
-        emailLabel.style.marginBottom = '4px';
-        emailLabel.style.fontWeight = 'bold';
-        
-        var emailInput = document.createElement('input');
-        emailInput.type = 'email';
-        emailInput.id = 'event-email';
-        emailInput.placeholder = 'Enter contact email';
-        emailInput.required = true;
-        emailInput.style.width = '100%';
-        emailInput.style.boxSizing = 'border-box';
-        emailInput.style.fontSize = '1em';
-        emailInput.style.marginBottom = '8px';
-        emailInput.style.padding = '4px 8px';
-        emailInput.style.borderRadius = '4px';
-        emailInput.style.border = '1px solid #ccc';
-        
-        // Insert before submit button
-        form.insertBefore(categoryLabel, submitButton);
-        form.insertBefore(categorySelect, submitButton);
-        form.insertBefore(emailLabel, submitButton);
-        form.insertBefore(emailInput, submitButton);
+        // Create email input elements only if they don't exist
+        if (!document.getElementById('event-email')) {
+            var emailLabel = document.createElement('label');
+            emailLabel.textContent = 'Contact Email:';
+            emailLabel.style.display = 'block';
+            emailLabel.style.marginTop = '8px';
+            emailLabel.style.marginBottom = '4px';
+            emailLabel.style.fontWeight = 'bold';
+            
+            var emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.id = 'event-email';
+            emailInput.placeholder = 'Enter contact email';
+            emailInput.required = true;
+            emailInput.style.width = '100%';
+            emailInput.style.boxSizing = 'border-box';
+            emailInput.style.fontSize = '1em';
+            emailInput.style.marginBottom = '8px';
+            emailInput.style.padding = '4px 8px';
+            emailInput.style.borderRadius = '4px';
+            emailInput.style.border = '1px solid #ccc';
+            
+            // Insert before submit button
+            form.insertBefore(emailLabel, submitButton);
+            form.insertBefore(emailInput, submitButton);
+        }
         
         // Initial population
         updateCategoryDropdown();
