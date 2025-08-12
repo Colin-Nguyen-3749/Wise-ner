@@ -117,9 +117,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global variable to track if we're editing an event
     var editingEvent = null;
 
+    // Global variable to track current form step
+    var currentFormStep = 1;
+
     // Function to open event edit modal
     function openEventEditModal(event) {
         editingEvent = event;
+        
+        // Reset to step 1
+        showFormStep1();
         
         // Update form title
         var formTitle = eventCreateContainer.querySelector('h2');
@@ -185,6 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var endInput = document.getElementById('event-end');
         var categorySelect = document.getElementById('event-category');
         var emailInput = document.getElementById('event-email');
+        var locationInput = document.getElementById('event-location');
+        var descriptionInput = document.getElementById('event-description');
         
         if (titleInput) titleInput.value = event.title || '';
         
@@ -213,6 +221,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set email if it exists
         if (emailInput && event.extendedProps && event.extendedProps.email) {
             emailInput.value = event.extendedProps.email;
+        }
+        
+        // Set location and description if they exist
+        if (locationInput && event.extendedProps && event.extendedProps.location) {
+            locationInput.value = event.extendedProps.location;
+        }
+        
+        if (descriptionInput && event.extendedProps && event.extendedProps.description) {
+            descriptionInput.value = event.extendedProps.description;
         }
         
         // Change submit button to update button and add delete button
@@ -265,6 +282,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to reset the event form to create mode
     function resetEventForm() {
         editingEvent = null;
+        currentFormStep = 1;
+        
+        // Reset to step 1
+        showFormStep1();
         
         // Reset form title
         var formTitle = eventCreateContainer.querySelector('h2');
@@ -280,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset submit button
         var submitButton = createEventForm.querySelector('button[type="submit"]');
         if (submitButton) {
-            submitButton.textContent = 'Add Event';
+            submitButton.textContent = 'Next';
         }
         
         // Remove delete button
@@ -295,21 +316,264 @@ document.addEventListener('DOMContentLoaded', function() {
             exitButton.remove();
         }
         
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+        
         // Reset dropdown
         updateCategoryDropdown();
+    }
+
+    // Function to show step 2 of the form
+    function showFormStep2() {
+        currentFormStep = 2;
+        
+        // Hide step 1 elements
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el && el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                el.previousElementSibling.style.display = 'none';
+            }
+            if (el) el.style.display = 'none';
+        });
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent;
+            formTitle.textContent = currentTitle + ' - Additional Details';
+        }
+        
+        // Create step 2 elements if they don't exist
+        if (!document.getElementById('event-location')) {
+            createStep2Elements();
+        }
+        
+        // Show step 2 elements
+        showStep2Elements();
+        
+        // Update button text and functionality
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = editingEvent ? 'Update Event' : 'Create Event';
+        }
+        
+        // Add back button
+        if (!document.getElementById('back-btn')) {
+            var backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.id = 'back-btn';
+            backButton.textContent = 'Back';
+            backButton.style.cssText = `
+                background: #6c757d;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-right: 8px;
+                transition: background 0.2s;
+            `;
+            
+            backButton.addEventListener('click', function() {
+                showFormStep1();
+            });
+            
+            backButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#5a6268';
+            });
+            
+            backButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#6c757d';
+            });
+            
+            submitButton.parentNode.insertBefore(backButton, submitButton);
+        }
+    }
+
+    // Function to show step 1 of the form
+    function showFormStep1() {
+        currentFormStep = 1;
+        
+        // Show step 1 elements
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el && el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                el.previousElementSibling.style.display = 'block';
+            }
+            if (el) el.style.display = 'block';
+        });
+        
+        // Hide step 2 elements
+        hideStep2Elements();
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent.replace(' - Additional Details', '');
+            formTitle.textContent = currentTitle;
+        }
+        
+        // Update button text
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+    }
+
+    // Function to create step 2 form elements
+    function createStep2Elements() {
+        var form = createEventForm;
+        var submitButton = form.querySelector('button[type="submit"]');
+        
+        // Create location input
+        var locationLabel = document.createElement('label');
+        locationLabel.textContent = 'Location (optional):';
+        locationLabel.style.cssText = `
+            display: none;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        `;
+        
+        var locationInput = document.createElement('input');
+        locationInput.type = 'text';
+        locationInput.id = 'event-location';
+        locationInput.placeholder = 'Enter event location';
+        locationInput.style.cssText = `
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1em;
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        `;
+        
+        // Create description textarea
+        var descriptionLabel = document.createElement('label');
+        descriptionLabel.textContent = 'Description (optional):';
+        descriptionLabel.style.cssText = `
+            display: none;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            font-weight: bold;
+        `;
+        
+        var descriptionInput = document.createElement('textarea');
+        descriptionInput.id = 'event-description';
+        descriptionInput.placeholder = 'Enter event description';
+        descriptionInput.rows = 4;
+        descriptionInput.style.cssText = `
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1em;
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            resize: vertical;
+            min-height: 80px;
+        `;
+        
+        // Insert before submit button
+        form.insertBefore(locationLabel, submitButton);
+        form.insertBefore(locationInput, submitButton);
+        form.insertBefore(descriptionLabel, submitButton);
+        form.insertBefore(descriptionInput, submitButton);
+    }
+
+    // Function to show step 2 elements
+    function showStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'block';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Function to hide step 2 elements
+    function hideStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'none';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
+                }
+            }
+        });
     }
 
     // Handle event creation form submission
     if (createEventForm) {
         createEventForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // If we're on step 1, go to step 2
+            if (currentFormStep === 1) {
+                var title = document.getElementById('event-title').value.trim();
+                if (!title) {
+                    alert('Please enter an event title');
+                    return;
+                }
+                showFormStep2();
+                return;
+            }
+            
+            // If we're on step 2, create/update the event
             var title = document.getElementById('event-title').value.trim();
             var startTime = document.getElementById('event-start').value;
             var endTime = document.getElementById('event-end').value;
             var categorySelect = document.getElementById('event-category');
             var emailInput = document.getElementById('event-email');
+            var locationInput = document.getElementById('event-location');
+            var descriptionInput = document.getElementById('event-description');
 
             if (title) {
+                // Get additional details
+                var location = locationInput ? locationInput.value.trim() : '';
+                var description = descriptionInput ? descriptionInput.value.trim() : '';
+                
                 // Determine if we're editing or creating
                 if (editingEvent) {
                     // Update existing event
@@ -352,6 +616,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     var contactEmail = emailInput ? emailInput.value.trim() : '';
                     editingEvent.setExtendedProp('category', categoryName);
                     editingEvent.setExtendedProp('email', contactEmail);
+                    editingEvent.setExtendedProp('location', location);
+                    editingEvent.setExtendedProp('description', description);
                     
                     resetEventForm();
                 } else {
@@ -427,7 +693,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         textColor: '#ffffff',
                         extendedProps: {
                             category: categoryName,
-                            email: contactEmail
+                            email: contactEmail,
+                            location: location,
+                            description: description
                         }
                     });
                     createEventForm.reset();
@@ -572,8 +840,11 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryDropdown();
     }
     
-    // Create the dropdown when the page loads
+    // Create the dropdown and step 2 elements when the page loads
     createCategoryDropdown();
+    if (createEventForm) {
+        createStep2Elements();
+    }
 
     if (addKeyBtn) {
         addKeyBtn.addEventListener('click', function() {
