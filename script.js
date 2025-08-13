@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showFormStep2() {
         currentFormStep = 2;
         
-        // Hide step 1 elements
+        // Hide step 1 elements and their labels
         var step1Elements = [
             document.getElementById('event-title'),
             document.getElementById('event-start'),
@@ -340,10 +340,34 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
         
         step1Elements.forEach(function(el) {
-            if (el && el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
-                el.previousElementSibling.style.display = 'none';
+            if (el) {
+                // Hide the input/select element
+                el.style.display = 'none';
+                
+                // Find and hide the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'none';
+                    }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
+                }
             }
-            if (el) el.style.display = 'none';
+        });
+        
+        // Also hide any remaining labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:') {
+                label.style.display = 'none';
+            }
         });
         
         // Update form title
@@ -405,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showFormStep1() {
         currentFormStep = 1;
         
-        // Show step 1 elements
+        // Show step 1 elements and their labels
         var step1Elements = [
             document.getElementById('event-title'),
             document.getElementById('event-start'),
@@ -415,10 +439,35 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
         
         step1Elements.forEach(function(el) {
-            if (el && el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
-                el.previousElementSibling.style.display = 'block';
+            if (el) {
+                // Show the input/select element
+                el.style.display = 'block';
+                
+                // Find and show the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'block';
+                    }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
             }
-            if (el) el.style.display = 'block';
+        });
+        
+        // Show step 1 labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:' ||
+                labelText === 'Category:' || labelText === 'Contact Email:') {
+                label.style.display = 'block';
+            }
         });
         
         // Hide step 2 elements
@@ -454,8 +503,8 @@ document.addEventListener('DOMContentLoaded', function() {
         locationLabel.textContent = 'Location (optional):';
         locationLabel.style.cssText = `
             display: none;
-            margin-top: 8px;
-            margin-bottom: 4px;
+            margin-top: 6px;
+            margin-bottom: 3px;
             font-weight: bold;
         `;
         
@@ -468,8 +517,8 @@ document.addEventListener('DOMContentLoaded', function() {
             width: 100%;
             box-sizing: border-box;
             font-size: 1em;
-            margin-bottom: 8px;
-            padding: 4px 8px;
+            margin-bottom: 6px;
+            padding: 6px 10px;
             border-radius: 4px;
             border: 1px solid #ccc;
         `;
@@ -479,8 +528,8 @@ document.addEventListener('DOMContentLoaded', function() {
         descriptionLabel.textContent = 'Description (optional):';
         descriptionLabel.style.cssText = `
             display: none;
-            margin-top: 8px;
-            margin-bottom: 4px;
+            margin-top: 6px;
+            margin-bottom: 3px;
             font-weight: bold;
         `;
         
@@ -493,8 +542,8 @@ document.addEventListener('DOMContentLoaded', function() {
             width: 100%;
             box-sizing: border-box;
             font-size: 1em;
-            margin-bottom: 8px;
-            padding: 4px 8px;
+            margin-bottom: 6px;
+            padding: 6px 10px;
             border-radius: 4px;
             border: 1px solid #ccc;
             resize: vertical;
@@ -790,8 +839,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var categoryLabel = document.createElement('label');
             categoryLabel.textContent = 'Category:';
             categoryLabel.style.display = 'block';
-            categoryLabel.style.marginTop = '8px';
-            categoryLabel.style.marginBottom = '4px';
+            categoryLabel.style.marginTop = '6px';
+            categoryLabel.style.marginBottom = '3px';
             categoryLabel.style.fontWeight = 'bold';
             
             var categorySelect = document.createElement('select');
@@ -799,8 +848,8 @@ document.addEventListener('DOMContentLoaded', function() {
             categorySelect.style.width = '100%';
             categorySelect.style.boxSizing = 'border-box';
             categorySelect.style.fontSize = '1em';
-            categorySelect.style.marginBottom = '8px';
-            categorySelect.style.padding = '4px 8px';
+            categorySelect.style.marginBottom = '6px';
+            categorySelect.style.padding = '6px 10px';
             categorySelect.style.borderRadius = '4px';
             categorySelect.style.border = '1px solid #ccc';
             
@@ -814,8 +863,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var emailLabel = document.createElement('label');
             emailLabel.textContent = 'Contact Email:';
             emailLabel.style.display = 'block';
-            emailLabel.style.marginTop = '8px';
-            emailLabel.style.marginBottom = '4px';
+            emailLabel.style.marginTop = '6px';
+            emailLabel.style.marginBottom = '3px';
             emailLabel.style.fontWeight = 'bold';
             
             var emailInput = document.createElement('input');
@@ -826,8 +875,8 @@ document.addEventListener('DOMContentLoaded', function() {
             emailInput.style.width = '100%';
             emailInput.style.boxSizing = 'border-box';
             emailInput.style.fontSize = '1em';
-            emailInput.style.marginBottom = '8px';
-            emailInput.style.padding = '4px 8px';
+            emailInput.style.marginBottom = '6px';
+            emailInput.style.padding = '6px 10px';
             emailInput.style.borderRadius = '4px';
             emailInput.style.border = '1px solid #ccc';
             
