@@ -29,17 +29,17 @@
                 <aside class="event-create-container" id="event-create-container" style="display:none;">
                     <h2>Create Event</h2>
                     <form id="create-event-form">
-                        <label>
+                        <label data-required>
                             Title:
                             <input type="text" id="event-title" required placeholder="Event Title">
                         </label>
-                        <label>
+                        <label data-required>
                             Start Time:
-                            <input type="text" id="event-start" readonly placeholder="Select time" autocomplete="off">
+                            <input type="text" id="event-start" required readonly placeholder="Select time" autocomplete="off">
                         </label>
-                        <label>
+                        <label data-required>
                             End Time:
-                            <input type="text" id="event-end" readonly placeholder="Select time" autocomplete="off">
+                            <input type="text" id="event-end" required readonly placeholder="Select time" autocomplete="off">
                         </label>
                         <button type="submit">Add Event</button>
                     </form>

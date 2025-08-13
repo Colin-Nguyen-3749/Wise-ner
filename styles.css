@@ -426,6 +426,34 @@ h1 {
     border-radius: 4px;
     border: 1px solid #ccc;
     font-family: 'Quicksand', sans-serif;
+    transition: border-color 0.2s;
+}
+
+/* Required field styling */
+#event-title:invalid,
+#event-start:invalid,
+#event-end:invalid {
+    border-color: #dc3545;
+}
+
+/* Focus styling */
+#event-title:focus,
+#event-start:focus,
+#event-end:focus,
+#event-category:focus,
+#event-email:focus,
+#event-location:focus,
+#event-description:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+/* Required indicator for labels */
+.event-create-container label[data-required]::after {
+    content: ' *';
+    color: #dc3545;
+    font-weight: bold;
 }
 
 /* Special styling for textarea */

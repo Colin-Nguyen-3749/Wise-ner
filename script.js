@@ -580,13 +580,43 @@ document.addEventListener('DOMContentLoaded', function() {
         createEventForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // If we're on step 1, go to step 2
+            // If we're on step 1, validate and go to step 2
             if (currentFormStep === 1) {
                 var title = document.getElementById('event-title').value.trim();
+                var startTime = document.getElementById('event-start').value.trim();
+                var endTime = document.getElementById('event-end').value.trim();
+                
+                // Validate required fields
                 if (!title) {
                     alert('Please enter an event title');
                     return;
                 }
+                
+                if (!startTime) {
+                    alert('Please select a start time');
+                    return;
+                }
+                
+                if (!endTime) {
+                    alert('Please select an end time');
+                    return;
+                }
+                
+                // Validate time logic
+                var startParsed = parseTime(startTime);
+                var endParsed = parseTime(endTime);
+                
+                if (!startParsed || !endParsed) {
+                    alert('Please enter valid times');
+                    return;
+                }
+                
+                // Check if start time is after end time
+                if (isStartTimeAfterEndTime(startParsed, endParsed)) {
+                    alert('Start time cannot be after end time. Please adjust your times.');
+                    return;
+                }
+                
                 showFormStep2();
                 return;
             }
@@ -652,38 +682,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     resetEventForm();
                 } else {
-                    // Create new event (existing code)
+                    // Create new event
                     var date = calendar.view.currentStart; // current day in view
                     var start = date;
                     var end = date;
-                    
-                    function parseTime(timeStr) {
-                        if (!timeStr) return null;
-                        // Handle AM/PM format: "12:30 PM" or "1:45 AM"
-                        var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-                        if (match) {
-                            var h = parseInt(match[1], 10);
-                            var m = parseInt(match[2], 10);
-                            var ampm = match[3].toUpperCase();
-                            
-                            // Convert to 24-hour format
-                            if (ampm === 'PM' && h !== 12) {
-                                h += 12;
-                            } else if (ampm === 'AM' && h === 12) {
-                                h = 0;
-                            }
-                            
-                            return { hours: h, minutes: m };
-                        }
-                        
-                        // Fallback: try 24-hour format "14:30"
-                        var parts = timeStr.split(':');
-                        if (parts.length === 2) {
-                            return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
-                        }
-                        
-                        return null;
-                    }
                     
                     if (startTime) {
                         var startParsed = parseTime(startTime);
@@ -717,8 +719,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     calendar.addEvent({
                         title: title,
                         start: start,
-                        end: endTime ? end : undefined,
-                        allDay: !startTime && !endTime,
+                        end: end,
+                        allDay: false,
                         backgroundColor: eventColor,
                         borderColor: eventColor,
                         textColor: '#ffffff',
@@ -733,36 +735,46 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateCategoryDropdown(); // Reset dropdown to default
                 }
             }
-            
-            // Helper function to parse time (same as before)
-            function parseTime(timeStr) {
-                if (!timeStr) return null;
-                // Handle AM/PM format: "12:30 PM" or "1:45 AM"
-                var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-                if (match) {
-                    var h = parseInt(match[1], 10);
-                    var m = parseInt(match[2], 10);
-                    var ampm = match[3].toUpperCase();
-                    
-                    // Convert to 24-hour format
-                    if (ampm === 'PM' && h !== 12) {
-                        h += 12;
-                    } else if (ampm === 'AM' && h === 12) {
-                        h = 0;
-                    }
-                    
-                    return { hours: h, minutes: m };
-                }
-                
-                // Fallback: try 24-hour format "14:30"
-                var parts = timeStr.split(':');
-                if (parts.length === 2) {
-                    return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
-                }
-                
-                return null;
-            }
         });
+    }
+
+    // Helper function to parse time
+    function parseTime(timeStr) {
+        if (!timeStr) return null;
+        // Handle AM/PM format: "12:30 PM" or "1:45 AM"
+        var match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (match) {
+            var h = parseInt(match[1], 10);
+            var m = parseInt(match[2], 10);
+            var ampm = match[3].toUpperCase();
+            
+            // Convert to 24-hour format
+            if (ampm === 'PM' && h !== 12) {
+                h += 12;
+            } else if (ampm === 'AM' && h === 12) {
+                h = 0;
+            }
+            
+            return { hours: h, minutes: m, ampm: ampm };
+        }
+        
+        // Fallback: try 24-hour format "14:30"
+        var parts = timeStr.split(':');
+        if (parts.length === 2) {
+            return { hours: parseInt(parts[0], 10), minutes: parseInt(parts[1], 10) };
+        }
+        
+        return null;
+    }
+
+    // Helper function to check if start time is after end time
+    function isStartTimeAfterEndTime(startParsed, endParsed) {
+        // Convert both times to minutes since midnight for comparison
+        var startMinutes = startParsed.hours * 60 + startParsed.minutes;
+        var endMinutes = endParsed.hours * 60 + endParsed.minutes;
+        
+        // Start time cannot be after or equal to end time
+        return startMinutes >= endMinutes;
     }
 
     // Legend functionality
