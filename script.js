@@ -476,9 +476,10 @@ document.addEventListener('DOMContentLoaded', function() {
         locationLabel.textContent = 'Location (optional):';
         locationLabel.style.cssText = `
             display: none;
-            margin-top: 8px;
+            margin-top: 10px;
             margin-bottom: 4px;
             font-weight: bold;
+            font-size: 0.95em;
         `;
         
         var locationInput = document.createElement('input');
@@ -489,9 +490,9 @@ document.addEventListener('DOMContentLoaded', function() {
             display: none;
             width: 100%;
             box-sizing: border-box;
-            font-size: 1em;
-            margin-bottom: 8px;
-            padding: 4px 8px;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            padding: 5px 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
         `;
@@ -501,26 +502,28 @@ document.addEventListener('DOMContentLoaded', function() {
         descriptionLabel.textContent = 'Description (optional):';
         descriptionLabel.style.cssText = `
             display: none;
-            margin-top: 8px;
+            margin-top: 10px;
             margin-bottom: 4px;
             font-weight: bold;
+            font-size: 0.95em;
         `;
         
         var descriptionInput = document.createElement('textarea');
         descriptionInput.id = 'event-description';
         descriptionInput.placeholder = 'Enter event description';
-        descriptionInput.rows = 4;
+        descriptionInput.rows = 3;
         descriptionInput.style.cssText = `
             display: none;
             width: 100%;
             box-sizing: border-box;
-            font-size: 1em;
-            margin-bottom: 8px;
-            padding: 4px 8px;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+            padding: 5px 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
             resize: vertical;
-            min-height: 80px;
+            min-height: 70px;
+            line-height: 1.3;
         `;
         
         // Insert before submit button
@@ -812,17 +815,18 @@ document.addEventListener('DOMContentLoaded', function() {
             var categoryLabel = document.createElement('label');
             categoryLabel.textContent = 'Category:';
             categoryLabel.style.display = 'block';
-            categoryLabel.style.marginTop = '8px';
+            categoryLabel.style.marginTop = '10px';
             categoryLabel.style.marginBottom = '4px';
             categoryLabel.style.fontWeight = 'bold';
+            categoryLabel.style.fontSize = '0.95em';
             
             var categorySelect = document.createElement('select');
             categorySelect.id = 'event-category';
             categorySelect.style.width = '100%';
             categorySelect.style.boxSizing = 'border-box';
-            categorySelect.style.fontSize = '1em';
-            categorySelect.style.marginBottom = '8px';
-            categorySelect.style.padding = '4px 8px';
+            categorySelect.style.fontSize = '0.95em';
+            categorySelect.style.marginBottom = '10px';
+            categorySelect.style.padding = '5px 8px';
             categorySelect.style.borderRadius = '4px';
             categorySelect.style.border = '1px solid #ccc';
             
@@ -836,9 +840,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var emailLabel = document.createElement('label');
             emailLabel.textContent = 'Contact Email:';
             emailLabel.style.display = 'block';
-            emailLabel.style.marginTop = '8px';
+            emailLabel.style.marginTop = '10px';
             emailLabel.style.marginBottom = '4px';
             emailLabel.style.fontWeight = 'bold';
+            emailLabel.style.fontSize = '0.95em';
             
             var emailInput = document.createElement('input');
             emailInput.type = 'email';
@@ -847,9 +852,9 @@ document.addEventListener('DOMContentLoaded', function() {
             emailInput.required = true;
             emailInput.style.width = '100%';
             emailInput.style.boxSizing = 'border-box';
-            emailInput.style.fontSize = '1em';
-            emailInput.style.marginBottom = '8px';
-            emailInput.style.padding = '4px 8px';
+            emailInput.style.fontSize = '0.95em';
+            emailInput.style.marginBottom = '10px';
+            emailInput.style.padding = '5px 8px';
             emailInput.style.borderRadius = '4px';
             emailInput.style.border = '1px solid #ccc';
             
@@ -1120,10 +1125,6 @@ document.addEventListener('DOMContentLoaded', function() {
             minuteCircle.className = 'clock-hand-circle minute';
             minuteCircle.style.left = `${minuteEndX - 10}px`;
             minuteCircle.style.top = `${minuteEndY - 10}px`;
-            picker.appendChild(minuteCircle);
-
-            // Only allow interaction with the active hand
-            if (mode === 'hour') {
                 hourHand.style.zIndex = '20';
                 hourCircle.style.zIndex = '21';
                 minuteHand.style.opacity = '0.3';
@@ -1193,70 +1194,69 @@ document.addEventListener('DOMContentLoaded', function() {
                         renderClock();
                     });
                 });
-            } else {
-                minuteHand.style.zIndex = '20';
-                minuteCircle.style.zIndex = '21';
-                hourHand.style.opacity = '0.3';
-                hourCircle.style.opacity = '0.3';
-                // Drag logic for minute hand
-                let draggingMinute = false;
-                function onMinuteDrag(e) {
-                    if (draggingMinute) {
-                        let rect = picker.getBoundingClientRect();
-                        let center = { x: rect.left + centerX, y: rect.top + centerY };
-                        let angle = getAngleFromEvent(e, center);
-                        let m = Math.round(angle / 6) % 60;
-                        m = m < 0 ? m + 60 : m;
-                        minute = m;
-                        setInputValue();
-                        let angleDeg = minute * 6 - 90;
-                        let angleRad = angleDeg * Math.PI / 180;
-                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
-                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
-                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
-                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
-                        </svg>`;
-                        minuteCircle.style.left = `${endX - 10}px`;
-                        minuteCircle.style.top = `${endY - 10}px`;
-                        picker.querySelectorAll('.clock-label').forEach(function(label) {
-                            label.classList.toggle('selected', parseInt(label.textContent) === minute);
-                        });
-                    }
+            // Minute hand logic (for mode === 'minute')
+            minuteHand.style.zIndex = '20';
+            minuteCircle.style.zIndex = '21';
+            hourHand.style.opacity = '0.3';
+            hourCircle.style.opacity = '0.3';
+            // Drag logic for minute hand
+            let draggingMinute = false;
+            function onMinuteDrag(e) {
+                if (draggingMinute) {
+                    let rect = picker.getBoundingClientRect();
+                    let center = { x: rect.left + centerX, y: rect.top + centerY };
+                    let angle = getAngleFromEvent(e, center);
+                    let m = Math.round(angle / 6) % 60;
+                    m = m < 0 ? m + 60 : m;
+                    minute = m;
+                    setInputValue();
+                    let angleDeg = minute * 6 - 90;
+                    let angleRad = angleDeg * Math.PI / 180;
+                    let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                    let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                    minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                        <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                    </svg>`;
+                    minuteCircle.style.left = `${endX - 10}px`;
+                    minuteCircle.style.top = `${endY - 10}px`;
+                    picker.querySelectorAll('.clock-label').forEach(function(label) {
+                        label.classList.toggle('selected', parseInt(label.textContent) === minute);
+                    });
                 }
-                function onMinuteUp(e) {
-                    if (draggingMinute) {
-                        draggingMinute = false;
-                        document.removeEventListener('mousemove', onMinuteDrag);
-                        document.removeEventListener('mouseup', onMinuteUp);
-                    }
+            }
+            function onMinuteUp(e) {
+                if (draggingMinute) {
+                    draggingMinute = false;
+                    document.removeEventListener('mousemove', onMinuteDrag);
+                    document.removeEventListener('mouseup', onMinuteUp);
                 }
-                minuteHand.addEventListener('mousedown', function(e) {
-                    draggingMinute = true;
-                    e.preventDefault();
-                    document.addEventListener('mousemove', onMinuteDrag);
-                    document.addEventListener('mouseup', onMinuteUp);
-                });
+            }
+            minuteHand.addEventListener('mousedown', function(e) {
+                draggingMinute = true;
+                e.preventDefault();
+                document.addEventListener('mousemove', onMinuteDrag);
+                document.addEventListener('mouseup', onMinuteUp);
+            });
 
-                // Click on minute labels to set minute
-                picker.querySelectorAll('.clock-label').forEach(function(label) {
-                    label.addEventListener('mousedown', function(e) {
-                        minute = parseInt(label.textContent);
-                        setInputValue();
-                        let angleDeg = minute * 6 - 90;
-                        let angleRad = angleDeg * Math.PI / 180;
-                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
-                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
-                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
-                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
-                        </svg>`;
-                        minuteCircle.style.left = `${endX - 10}px`;
-                        minuteCircle.style.top = `${endY - 10}px`;
-                        picker.querySelectorAll('.clock-label').forEach(function(l) {
-                            l.classList.toggle('selected', parseInt(l.textContent) === minute);
-                        });
+            // Click on minute labels to set minute
+            picker.querySelectorAll('.clock-label').forEach(function(label) {
+                label.addEventListener('mousedown', function(e) {
+                    minute = parseInt(label.textContent);
+                    setInputValue();
+                    let angleDeg = minute * 6 - 90;
+                    let angleRad = angleDeg * Math.PI / 180;
+                    let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                    let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                    minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                        <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                    </svg>`;
+                    minuteCircle.style.left = `${endX - 10}px`;
+                    minuteCircle.style.top = `${endY - 10}px`;
+                    picker.querySelectorAll('.clock-label').forEach(function(l) {
+                        l.classList.toggle('selected', parseInt(l.textContent) === minute);
                     });
                 });
-            }
+            });
 
             // Draw center dot
             let centerDot = document.createElement('div');
