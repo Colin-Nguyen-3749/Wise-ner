@@ -501,54 +501,24 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create location input
         var locationLabel = document.createElement('label');
         locationLabel.textContent = 'Location (optional):';
-        locationLabel.style.cssText = `
-            display: none;
-            margin-top: 6px;
-            margin-bottom: 3px;
-            font-weight: bold;
-        `;
+        locationLabel.style.display = 'none';
         
         var locationInput = document.createElement('input');
         locationInput.type = 'text';
         locationInput.id = 'event-location';
         locationInput.placeholder = 'Enter event location';
-        locationInput.style.cssText = `
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 1em;
-            margin-bottom: 6px;
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        `;
+        locationInput.style.display = 'none';
         
         // Create description textarea
         var descriptionLabel = document.createElement('label');
         descriptionLabel.textContent = 'Description (optional):';
-        descriptionLabel.style.cssText = `
-            display: none;
-            margin-top: 6px;
-            margin-bottom: 3px;
-            font-weight: bold;
-        `;
+        descriptionLabel.style.display = 'none';
         
         var descriptionInput = document.createElement('textarea');
         descriptionInput.id = 'event-description';
         descriptionInput.placeholder = 'Enter event description';
         descriptionInput.rows = 4;
-        descriptionInput.style.cssText = `
-            display: none;
-            width: 100%;
-            box-sizing: border-box;
-            font-size: 1em;
-            margin-bottom: 6px;
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            resize: vertical;
-            min-height: 80px;
-        `;
+        descriptionInput.style.display = 'none';
         
         // Insert before submit button
         form.insertBefore(locationLabel, submitButton);
@@ -838,20 +808,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!document.getElementById('event-category')) {
             var categoryLabel = document.createElement('label');
             categoryLabel.textContent = 'Category:';
-            categoryLabel.style.display = 'block';
-            categoryLabel.style.marginTop = '6px';
-            categoryLabel.style.marginBottom = '3px';
-            categoryLabel.style.fontWeight = 'bold';
             
             var categorySelect = document.createElement('select');
             categorySelect.id = 'event-category';
-            categorySelect.style.width = '100%';
-            categorySelect.style.boxSizing = 'border-box';
-            categorySelect.style.fontSize = '1em';
-            categorySelect.style.marginBottom = '6px';
-            categorySelect.style.padding = '6px 10px';
-            categorySelect.style.borderRadius = '4px';
-            categorySelect.style.border = '1px solid #ccc';
             
             // Insert before submit button
             form.insertBefore(categoryLabel, submitButton);
@@ -862,23 +821,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!document.getElementById('event-email')) {
             var emailLabel = document.createElement('label');
             emailLabel.textContent = 'Contact Email:';
-            emailLabel.style.display = 'block';
-            emailLabel.style.marginTop = '6px';
-            emailLabel.style.marginBottom = '3px';
-            emailLabel.style.fontWeight = 'bold';
             
             var emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.id = 'event-email';
             emailInput.placeholder = 'Enter contact email';
             emailInput.required = true;
-            emailInput.style.width = '100%';
-            emailInput.style.boxSizing = 'border-box';
-            emailInput.style.fontSize = '1em';
-            emailInput.style.marginBottom = '6px';
-            emailInput.style.padding = '6px 10px';
-            emailInput.style.borderRadius = '4px';
-            emailInput.style.border = '1px solid #ccc';
             
             // Insert before submit button
             form.insertBefore(emailLabel, submitButton);
