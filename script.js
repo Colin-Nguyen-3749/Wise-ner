@@ -114,6 +114,194 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
+    // Local Storage Functions
+    function saveEventsToStorage() {
+        var events = calendar.getEvents().map(function(event) {
+            return {
+                id: event.id,
+                title: event.title,
+                start: event.start ? event.start.toISOString() : null,
+                end: event.end ? event.end.toISOString() : null,
+                allDay: event.allDay,
+                backgroundColor: event.backgroundColor,
+                borderColor: event.borderColor,
+                textColor: event.textColor,
+                extendedProps: event.extendedProps
+            };
+        });
+        localStorage.setItem('wise-ner-events', JSON.stringify(events));
+    }
+
+    function loadEventsFromStorage() {
+        var storedEvents = localStorage.getItem('wise-ner-events');
+        if (storedEvents) {
+            try {
+                var events = JSON.parse(storedEvents);
+                events.forEach(function(eventData) {
+                    calendar.addEvent({
+                        id: eventData.id,
+                        title: eventData.title,
+                        start: eventData.start ? new Date(eventData.start) : null,
+                        end: eventData.end ? new Date(eventData.end) : null,
+                        allDay: eventData.allDay,
+                        backgroundColor: eventData.backgroundColor,
+                        borderColor: eventData.borderColor,
+                        textColor: eventData.textColor,
+                        extendedProps: eventData.extendedProps
+                    });
+                });
+            } catch (e) {
+                console.error('Error loading events from storage:', e);
+            }
+        }
+    }
+
+    function saveLegendToStorage() {
+        var legendItems = [];
+        if (legendList) {
+            var items = legendList.querySelectorAll('li');
+            items.forEach(function(li) {
+                var colorCircle = li.querySelector('.legend-color-circle');
+                var nameText = li.querySelector('.legend-name-text');
+                
+                if (colorCircle && nameText) {
+                    legendItems.push({
+                        color: colorCircle.style.background,
+                        name: nameText.textContent
+                    });
+                }
+            });
+        }
+        localStorage.setItem('wise-ner-legend', JSON.stringify(legendItems));
+    }
+
+    function loadLegendFromStorage() {
+        var storedLegend = localStorage.getItem('wise-ner-legend');
+        if (storedLegend) {
+            try {
+                var legendItems = JSON.parse(storedLegend);
+                legendItems.forEach(function(item) {
+                    createLegendItem(item.color, item.name);
+                });
+                updateCategoryDropdown();
+            } catch (e) {
+                console.error('Error loading legend from storage:', e);
+            }
+        }
+    }
+
+    function createLegendItem(color, name) {
+        var li = document.createElement('li');
+
+        // Preset color options
+        var colors = [
+            "#ff0000ff", "#ff7300ff", "#ffae00ff", "#ffff00ff", "#48da74ff",
+            "#4c9967ff", "#4f6de4ff", "#a45ff7ff", "#e97bffff",
+            "#e2a6d0ff"
+        ];
+
+        // Color circle
+        var colorCircle = document.createElement('span');
+        colorCircle.className = 'legend-color-circle';
+        colorCircle.style.background = color;
+        colorCircle.style.marginRight = '8px';
+
+        // Color menu (hidden by default)
+        var colorMenu = document.createElement('div');
+        colorMenu.className = 'legend-color-menu';
+        colorMenu.style.display = 'none';
+
+        colors.forEach(function(colorOption) {
+            var colorOptionElement = document.createElement('span');
+            colorOptionElement.className = 'legend-color-option';
+            colorOptionElement.style.background = colorOption;
+            colorOptionElement.setAttribute('data-color', colorOption);
+            colorOptionElement.addEventListener('click', function(e) {
+                colorCircle.style.background = colorOption;
+                colorMenu.style.display = 'none';
+                saveLegendToStorage();
+                updateCategoryDropdown();
+            });
+            colorMenu.appendChild(colorOptionElement);
+        });
+
+        // Show/hide color menu on circle click
+        colorCircle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            colorMenu.style.display = colorMenu.style.display === 'none' ? 'grid' : 'none';
+        });
+
+        // Hide color menu if clicking elsewhere
+        document.addEventListener('click', function() {
+            colorMenu.style.display = 'none';
+        });
+
+        // Category name display
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.className = 'legend-name-text';
+        nameSpan.style.flex = '1';
+        nameSpan.style.cursor = 'pointer';
+        nameSpan.style.padding = '2px 6px';
+        nameSpan.style.borderRadius = '4px';
+
+        // Create input for editing
+        var nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'legend-name-input';
+        nameInput.style.flex = '1';
+        nameInput.style.fontSize = '1em';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+
+        // Double-click to edit
+        nameSpan.addEventListener('dblclick', function() {
+            li.replaceChild(nameInput, nameSpan);
+            nameInput.value = nameSpan.textContent;
+            nameInput.focus();
+        });
+
+        // Save on Enter or blur
+        function saveNameEdit() {
+            var value = nameInput.value.trim() || 'Unnamed';
+            nameSpan.textContent = value;
+            li.replaceChild(nameSpan, nameInput);
+            saveLegendToStorage();
+            updateCategoryDropdown();
+        }
+
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNameEdit();
+            }
+        });
+
+        nameInput.addEventListener('blur', saveNameEdit);
+
+        // Add delete functionality with right-click
+        li.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (confirm('Delete this legend item?')) {
+                li.remove();
+                saveLegendToStorage();
+                updateCategoryDropdown();
+            }
+        });
+
+        li.appendChild(colorCircle);
+        li.appendChild(colorMenu);
+        li.appendChild(nameSpan);
+        if (legendList) {
+            legendList.appendChild(li);
+        }
+    }
+
+    // Load saved data on page load
+    loadLegendFromStorage();
+    loadEventsFromStorage();
+
     // Global variable to track if we're editing an event
     var editingEvent = null;
 
@@ -258,6 +446,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (confirm('Are you sure you want to delete this event?')) {
                     if (editingEvent) {
                         editingEvent.remove();
+                        // Save to storage after deleting event
+                        saveEventsToStorage();
                         resetEventForm();
                     }
                 }
@@ -680,6 +870,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     editingEvent.setExtendedProp('location', location);
                     editingEvent.setExtendedProp('description', description);
                     
+                    // Save to storage after updating event
+                    saveEventsToStorage();
+                    
                     resetEventForm();
                 } else {
                     // Create new event
@@ -731,6 +924,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             description: description
                         }
                     });
+                    
+                    // Save to storage after creating event
+                    saveEventsToStorage();
+                    
                     createEventForm.reset();
                     updateCategoryDropdown(); // Reset dropdown to default
                 }
@@ -897,6 +1094,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 colorOption.addEventListener('click', function(e) {
                     colorCircle.style.background = color;
                     colorMenu.style.display = 'none';
+                    // Save to storage when color changes
+                    saveLegendToStorage();
+                    updateCategoryDropdown();
                 });
                 colorMenu.appendChild(colorOption);
             });
@@ -944,7 +1144,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     li.replaceChild(nameSpan, nameInput);
-                    updateCategoryDropdown(); // Update dropdown when legend item is added
+                    // Save to storage when legend item is added
+                    saveLegendToStorage();
+                    updateCategoryDropdown();
                 }
             });
 
@@ -967,7 +1169,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                     li.replaceChild(nameSpan, nameInput);
-                    updateCategoryDropdown(); // Update dropdown when legend item is added
+                    // Save to storage when legend item is added
+                    saveLegendToStorage();
+                    updateCategoryDropdown();
                 }
             });
 
@@ -976,7 +1180,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 if (confirm('Delete this legend item?')) {
                     li.remove();
-                    updateCategoryDropdown(); // Update dropdown when legend item is removed
+                    // Save to storage when legend item is removed
+                    saveLegendToStorage();
+                    updateCategoryDropdown();
                 }
             });
 
