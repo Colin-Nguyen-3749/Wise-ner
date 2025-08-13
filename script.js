@@ -191,6 +191,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createLegendItem(color, name) {
+        // Make sure legendList exists
+        if (!legendList) {
+            console.error('Legend list not found');
+            return;
+        }
+
         var li = document.createElement('li');
 
         // Preset color options
@@ -293,14 +299,16 @@ document.addEventListener('DOMContentLoaded', function() {
         li.appendChild(colorCircle);
         li.appendChild(colorMenu);
         li.appendChild(nameSpan);
-        if (legendList) {
-            legendList.appendChild(li);
-        }
+        legendList.appendChild(li);
     }
 
-    // Load saved data on page load
-    loadLegendFromStorage();
+    // Legend functionality - Define variables first
+    var legendList = document.getElementById('legend-list');
+    var addKeyBtn = document.getElementById('add-key-btn');
+
+    // Load saved data on page load - AFTER variables are defined
     loadEventsFromStorage();
+    loadLegendFromStorage();
 
     // Global variable to track if we're editing an event
     var editingEvent = null;
@@ -974,10 +982,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return startMinutes >= endMinutes;
     }
 
-    // Legend functionality
-    var legendList = document.getElementById('legend-list');
-    var addKeyBtn = document.getElementById('add-key-btn');
-
     // Function to update the category dropdown with current legend items
     function updateCategoryDropdown() {
         var categorySelect = document.getElementById('event-category');
@@ -1064,6 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
         createStep2Elements();
     }
 
+    // Add legend button functionality
     if (addKeyBtn) {
         addKeyBtn.addEventListener('click', function() {
             var li = document.createElement('li');
@@ -1189,7 +1194,9 @@ document.addEventListener('DOMContentLoaded', function() {
             li.appendChild(colorCircle);
             li.appendChild(colorMenu);
             li.appendChild(nameInput);
-            legendList.appendChild(li);
+            if (legendList) {
+                legendList.appendChild(li);
+            }
             nameInput.focus();
         });
     }
