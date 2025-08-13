@@ -232,10 +232,46 @@ document.addEventListener('DOMContentLoaded', function() {
             descriptionInput.value = event.extendedProps.description;
         }
         
-        // Set submit button to "Next" for step 1 in edit mode
+        // Change submit button to update button and add delete button
         var submitButton = createEventForm.querySelector('button[type="submit"]');
         if (submitButton) {
-            submitButton.textContent = 'Next';
+            submitButton.textContent = 'Update Event';
+        }
+        
+        // Add delete button if it doesn't exist
+        if (!document.getElementById('delete-event-btn')) {
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.id = 'delete-event-btn';
+            deleteButton.textContent = 'Delete Event';
+            deleteButton.style.backgroundColor = '#dc3545';
+            deleteButton.style.color = '#fff';
+            deleteButton.style.border = 'none';
+            deleteButton.style.borderRadius = '4px';
+            deleteButton.style.padding = '6px 12px';
+            deleteButton.style.fontSize = '1em';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.style.marginLeft = '8px';
+            deleteButton.style.transition = 'background 0.2s';
+            
+            deleteButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    if (editingEvent) {
+                        editingEvent.remove();
+                        resetEventForm();
+                    }
+                }
+            });
+            
+            deleteButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#c82333';
+            });
+            
+            deleteButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#dc3545';
+            });
+            
+            submitButton.parentNode.appendChild(deleteButton);
         }
         
         // Show the event create container
@@ -268,30 +304,22 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.textContent = 'Next';
         }
         
-        // Remove button container and all its buttons
-        var buttonContainer = document.getElementById('button-container');
-        if (buttonContainer) {
-            // Move submit button back to form before removing container
-            var form = createEventForm;
-            form.appendChild(submitButton);
-            buttonContainer.remove();
-        }
-        
-        // Remove individual buttons if they exist outside container
+        // Remove delete button
         var deleteButton = document.getElementById('delete-event-btn');
         if (deleteButton) {
             deleteButton.remove();
-        }
-        
-        var backButton = document.getElementById('back-btn');
-        if (backButton) {
-            backButton.remove();
         }
         
         // Remove exit button
         var exitButton = document.getElementById('edit-exit-btn');
         if (exitButton) {
             exitButton.remove();
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
         }
         
         // Reset dropdown
@@ -339,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.textContent = editingEvent ? 'Update Event' : 'Create Event';
         }
         
-        // Add back button with horizontal alignment
+        // Add back button
         if (!document.getElementById('back-btn')) {
             var backButton = document.createElement('button');
             backButton.type = 'button';
@@ -353,6 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 padding: 6px 12px;
                 font-size: 1em;
                 cursor: pointer;
+                margin-right: 8px;
                 transition: background 0.2s;
             `;
             
@@ -368,58 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.style.backgroundColor = '#6c757d';
             });
             
-            // Create button container for horizontal alignment
-            var buttonContainer = document.createElement('div');
-            buttonContainer.id = 'button-container';
-            buttonContainer.style.cssText = `
-                display: flex;
-                gap: 8px;
-                margin-top: 8px;
-                align-items: center;
-            `;
-            
-            // Move submit button into container
-            var form = createEventForm;
-            form.insertBefore(buttonContainer, submitButton);
-            buttonContainer.appendChild(backButton);
-            buttonContainer.appendChild(submitButton);
-            
-            // Add delete button if in edit mode
-            if (editingEvent && !document.getElementById('delete-event-btn')) {
-                var deleteButton = document.createElement('button');
-                deleteButton.type = 'button';
-                deleteButton.id = 'delete-event-btn';
-                deleteButton.textContent = 'Delete Event';
-                deleteButton.style.cssText = `
-                    background: #dc3545;
-                    color: #fff;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    font-size: 1em;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                `;
-                
-                deleteButton.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to delete this event?')) {
-                        if (editingEvent) {
-                            editingEvent.remove();
-                            resetEventForm();
-                        }
-                    }
-                });
-                
-                deleteButton.addEventListener('mouseenter', function() {
-                    this.style.backgroundColor = '#c82333';
-                });
-                
-                deleteButton.addEventListener('mouseleave', function() {
-                    this.style.backgroundColor = '#dc3545';
-                });
-                
-                buttonContainer.appendChild(deleteButton);
-            }
+            submitButton.parentNode.insertBefore(backButton, submitButton);
         }
     }
 
@@ -476,10 +454,9 @@ document.addEventListener('DOMContentLoaded', function() {
         locationLabel.textContent = 'Location (optional):';
         locationLabel.style.cssText = `
             display: none;
-            margin-top: 10px;
+            margin-top: 8px;
             margin-bottom: 4px;
             font-weight: bold;
-            font-size: 0.95em;
         `;
         
         var locationInput = document.createElement('input');
@@ -490,9 +467,9 @@ document.addEventListener('DOMContentLoaded', function() {
             display: none;
             width: 100%;
             box-sizing: border-box;
-            font-size: 0.95em;
-            margin-bottom: 10px;
-            padding: 5px 8px;
+            font-size: 1em;
+            margin-bottom: 8px;
+            padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
         `;
@@ -502,28 +479,26 @@ document.addEventListener('DOMContentLoaded', function() {
         descriptionLabel.textContent = 'Description (optional):';
         descriptionLabel.style.cssText = `
             display: none;
-            margin-top: 10px;
+            margin-top: 8px;
             margin-bottom: 4px;
             font-weight: bold;
-            font-size: 0.95em;
         `;
         
         var descriptionInput = document.createElement('textarea');
         descriptionInput.id = 'event-description';
         descriptionInput.placeholder = 'Enter event description';
-        descriptionInput.rows = 3;
+        descriptionInput.rows = 4;
         descriptionInput.style.cssText = `
             display: none;
             width: 100%;
             box-sizing: border-box;
-            font-size: 0.95em;
-            margin-bottom: 10px;
-            padding: 5px 8px;
+            font-size: 1em;
+            margin-bottom: 8px;
+            padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
             resize: vertical;
-            min-height: 70px;
-            line-height: 1.3;
+            min-height: 80px;
         `;
         
         // Insert before submit button
@@ -815,18 +790,17 @@ document.addEventListener('DOMContentLoaded', function() {
             var categoryLabel = document.createElement('label');
             categoryLabel.textContent = 'Category:';
             categoryLabel.style.display = 'block';
-            categoryLabel.style.marginTop = '10px';
+            categoryLabel.style.marginTop = '8px';
             categoryLabel.style.marginBottom = '4px';
             categoryLabel.style.fontWeight = 'bold';
-            categoryLabel.style.fontSize = '0.95em';
             
             var categorySelect = document.createElement('select');
             categorySelect.id = 'event-category';
             categorySelect.style.width = '100%';
             categorySelect.style.boxSizing = 'border-box';
-            categorySelect.style.fontSize = '0.95em';
-            categorySelect.style.marginBottom = '10px';
-            categorySelect.style.padding = '5px 8px';
+            categorySelect.style.fontSize = '1em';
+            categorySelect.style.marginBottom = '8px';
+            categorySelect.style.padding = '4px 8px';
             categorySelect.style.borderRadius = '4px';
             categorySelect.style.border = '1px solid #ccc';
             
@@ -840,10 +814,9 @@ document.addEventListener('DOMContentLoaded', function() {
             var emailLabel = document.createElement('label');
             emailLabel.textContent = 'Contact Email:';
             emailLabel.style.display = 'block';
-            emailLabel.style.marginTop = '10px';
+            emailLabel.style.marginTop = '8px';
             emailLabel.style.marginBottom = '4px';
             emailLabel.style.fontWeight = 'bold';
-            emailLabel.style.fontSize = '0.95em';
             
             var emailInput = document.createElement('input');
             emailInput.type = 'email';
@@ -852,9 +825,9 @@ document.addEventListener('DOMContentLoaded', function() {
             emailInput.required = true;
             emailInput.style.width = '100%';
             emailInput.style.boxSizing = 'border-box';
-            emailInput.style.fontSize = '0.95em';
-            emailInput.style.marginBottom = '10px';
-            emailInput.style.padding = '5px 8px';
+            emailInput.style.fontSize = '1em';
+            emailInput.style.marginBottom = '8px';
+            emailInput.style.padding = '4px 8px';
             emailInput.style.borderRadius = '4px';
             emailInput.style.border = '1px solid #ccc';
             
@@ -1125,6 +1098,10 @@ document.addEventListener('DOMContentLoaded', function() {
             minuteCircle.className = 'clock-hand-circle minute';
             minuteCircle.style.left = `${minuteEndX - 10}px`;
             minuteCircle.style.top = `${minuteEndY - 10}px`;
+            picker.appendChild(minuteCircle);
+
+            // Only allow interaction with the active hand
+            if (mode === 'hour') {
                 hourHand.style.zIndex = '20';
                 hourCircle.style.zIndex = '21';
                 minuteHand.style.opacity = '0.3';
@@ -1194,69 +1171,70 @@ document.addEventListener('DOMContentLoaded', function() {
                         renderClock();
                     });
                 });
-            // Minute hand logic (for mode === 'minute')
-            minuteHand.style.zIndex = '20';
-            minuteCircle.style.zIndex = '21';
-            hourHand.style.opacity = '0.3';
-            hourCircle.style.opacity = '0.3';
-            // Drag logic for minute hand
-            let draggingMinute = false;
-            function onMinuteDrag(e) {
-                if (draggingMinute) {
-                    let rect = picker.getBoundingClientRect();
-                    let center = { x: rect.left + centerX, y: rect.top + centerY };
-                    let angle = getAngleFromEvent(e, center);
-                    let m = Math.round(angle / 6) % 60;
-                    m = m < 0 ? m + 60 : m;
-                    minute = m;
-                    setInputValue();
-                    let angleDeg = minute * 6 - 90;
-                    let angleRad = angleDeg * Math.PI / 180;
-                    let endX = centerX + minuteHandLength * Math.cos(angleRad);
-                    let endY = centerY + minuteHandLength * Math.sin(angleRad);
-                    minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
-                        <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
-                    </svg>`;
-                    minuteCircle.style.left = `${endX - 10}px`;
-                    minuteCircle.style.top = `${endY - 10}px`;
-                    picker.querySelectorAll('.clock-label').forEach(function(label) {
-                        label.classList.toggle('selected', parseInt(label.textContent) === minute);
-                    });
+            } else {
+                minuteHand.style.zIndex = '20';
+                minuteCircle.style.zIndex = '21';
+                hourHand.style.opacity = '0.3';
+                hourCircle.style.opacity = '0.3';
+                // Drag logic for minute hand
+                let draggingMinute = false;
+                function onMinuteDrag(e) {
+                    if (draggingMinute) {
+                        let rect = picker.getBoundingClientRect();
+                        let center = { x: rect.left + centerX, y: rect.top + centerY };
+                        let angle = getAngleFromEvent(e, center);
+                        let m = Math.round(angle / 6) % 60;
+                        m = m < 0 ? m + 60 : m;
+                        minute = m;
+                        setInputValue();
+                        let angleDeg = minute * 6 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                        </svg>`;
+                        minuteCircle.style.left = `${endX - 10}px`;
+                        minuteCircle.style.top = `${endY - 10}px`;
+                        picker.querySelectorAll('.clock-label').forEach(function(label) {
+                            label.classList.toggle('selected', parseInt(label.textContent) === minute);
+                        });
+                    }
                 }
-            }
-            function onMinuteUp(e) {
-                if (draggingMinute) {
-                    draggingMinute = false;
-                    document.removeEventListener('mousemove', onMinuteDrag);
-                    document.removeEventListener('mouseup', onMinuteUp);
+                function onMinuteUp(e) {
+                    if (draggingMinute) {
+                        draggingMinute = false;
+                        document.removeEventListener('mousemove', onMinuteDrag);
+                        document.removeEventListener('mouseup', onMinuteUp);
+                    }
                 }
-            }
-            minuteHand.addEventListener('mousedown', function(e) {
-                draggingMinute = true;
-                e.preventDefault();
-                document.addEventListener('mousemove', onMinuteDrag);
-                document.addEventListener('mouseup', onMinuteUp);
-            });
+                minuteHand.addEventListener('mousedown', function(e) {
+                    draggingMinute = true;
+                    e.preventDefault();
+                    document.addEventListener('mousemove', onMinuteDrag);
+                    document.addEventListener('mouseup', onMinuteUp);
+                });
 
-            // Click on minute labels to set minute
-            picker.querySelectorAll('.clock-label').forEach(function(label) {
-                label.addEventListener('mousedown', function(e) {
-                    minute = parseInt(label.textContent);
-                    setInputValue();
-                    let angleDeg = minute * 6 - 90;
-                    let angleRad = angleDeg * Math.PI / 180;
-                    let endX = centerX + minuteHandLength * Math.cos(angleRad);
-                    let endY = centerY + minuteHandLength * Math.sin(angleRad);
-                    minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
-                        <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
-                    </svg>`;
-                    minuteCircle.style.left = `${endX - 10}px`;
-                    minuteCircle.style.top = `${endY - 10}px`;
-                    picker.querySelectorAll('.clock-label').forEach(function(l) {
-                        l.classList.toggle('selected', parseInt(l.textContent) === minute);
+                // Click on minute labels to set minute
+                picker.querySelectorAll('.clock-label').forEach(function(label) {
+                    label.addEventListener('mousedown', function(e) {
+                        minute = parseInt(label.textContent);
+                        setInputValue();
+                        let angleDeg = minute * 6 - 90;
+                        let angleRad = angleDeg * Math.PI / 180;
+                        let endX = centerX + minuteHandLength * Math.cos(angleRad);
+                        let endY = centerY + minuteHandLength * Math.sin(angleRad);
+                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                            <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
+                        </svg>`;
+                        minuteCircle.style.left = `${endX - 10}px`;
+                        minuteCircle.style.top = `${endY - 10}px`;
+                        picker.querySelectorAll('.clock-label').forEach(function(l) {
+                            l.classList.toggle('selected', parseInt(l.textContent) === minute);
+                        });
                     });
                 });
-            });
+            }
 
             // Draw center dot
             let centerDot = document.createElement('div');
