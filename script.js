@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Change submit button to update button and add delete button
         var submitButton = createEventForm.querySelector('button[type="submit"]');
         if (submitButton) {
-            submitButton.textContent = 'Update Event';
+            submitButton.textContent = 'Next';
         }
         
         // Add delete button if it doesn't exist
@@ -374,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var formTitle = eventCreateContainer.querySelector('h2');
         if (formTitle) {
             var currentTitle = formTitle.textContent;
-            formTitle.textContent = currentTitle + ' - Additional Details';
+            formTitle.textContent = currentTitle + ' (Further Details)';
         }
         
         // Create step 2 elements if they don't exist
@@ -422,6 +422,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             submitButton.parentNode.insertBefore(backButton, submitButton);
+        }
+        
+        // Hide delete button in step 2
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.style.display = 'none';
         }
     }
 
@@ -490,6 +496,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var backButton = document.getElementById('back-btn');
         if (backButton) {
             backButton.remove();
+        }
+        
+        // Show delete button in step 1 if editing
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton && editingEvent) {
+            deleteButton.style.display = 'inline-block';
         }
     }
 
