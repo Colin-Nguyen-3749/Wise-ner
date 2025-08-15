@@ -11,6 +11,50 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
     </head>
+    <script type="module">
+    // Import Firebase modules directly from Google’s CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+
+    // Your Firebase config from Step 2
+    const firebaseConfig = {
+    apiKey: "AIzaSyAc7GwpxMV1ydIqkzo7DydzpLbXM-KRv6s",
+    authDomain: "wise-ner2.firebaseapp.com",
+    projectId: "wise-ner2",
+    storageBucket: "wise-ner2.firebasestorage.app",
+    messagingSenderId: "935296650537",
+    appId: "1:935296650537:web:8478e21a16769cbc5f3b38"
+    };
+
+    // Initialize Firebase and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- CRUD Functions ---
+    async function addEvent(event) {
+        await addDoc(collection(db, "events"), event);
+        console.log("Event added:", event);
+    }
+
+    async function getAllEvents() {
+        const snapshot = await getDocs(collection(db, "events"));
+        let events = [];
+        snapshot.forEach(docSnap => {
+        events.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        return events;
+    }
+
+    async function deleteEvent(id) {
+        await deleteDoc(doc(db, "events", id));
+        console.log("Event deleted:", id);
+    }
+
+    // Example usage:
+    // addEvent({ title: "Concert", date: "2025-08-20" });
+    // getAllEvents().then(console.log);
+    </script>
 
     <body>
         <div class="page-wrapper">

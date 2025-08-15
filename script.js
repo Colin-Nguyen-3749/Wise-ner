@@ -114,6 +114,141 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
+    // --- FIREBASE EVENT FUNCTIONS ---
+    // These should be defined somewhere in your script, or import them if in another file.
+    // Example implementations (adjust as needed):
+    async function addEvent(event) {
+        // Returns the Firestore document ID
+        const docRef = await db.collection("events").add(event);
+        return docRef.id;
+    }
+    async function getAllEvents() {
+        const snapshot = await db.collection("events").get();
+        const events = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            events.push({ id: doc.id, ...data });
+        });
+        const now = new Date();
+        events.forEach(event => {
+            const eventDate = new Date(event.date);
+            const diffDays = (now - eventDate) / (1000 * 60 * 60 * 24);
+            if (diffDays > 30) {
+                deleteEvent(event.id);
+            }
+        });
+        return events;
+    }
+    async function deleteEvent(eventId) {
+        await db.collection("events").doc(eventId).delete();
+    }
+
+    // --- REPLACE LOAD EVENTS ON PAGE LOAD ---
+    document.addEventListener("DOMContentLoaded", async () => {
+        const events = await getAllEvents();
+        events.forEach(e => {
+            displayEvent(e);
+        });
+    });
+
+    // --- REPLACE EVENT CREATION LOGIC ---
+    if (createEventForm) {
+        const form = createEventForm;
+        const titleInput = document.getElementById('event-title');
+        const startTime = document.getElementById('event-start');
+        const endTime = document.getElementById('event-end');
+        const categoryInput = document.getElementById('event-category');
+        const emailInput = document.getElementById('event-email');
+        const locationInput = document.getElementById('event-location');
+        const descriptionInput = document.getElementById('event-description');
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const newEvent = {
+                title: titleInput.value,
+                start: startTime.value,
+                end: endTime.value,
+                category: categoryInput ? categoryInput.value : "",
+                email: emailInput ? emailInput.value : "",
+                location: locationInput ? locationInput.value : "",
+                description: descriptionInput ? descriptionInput.value : "",
+                createdAt: Date.now()
+            };
+
+            const docId = await addEvent(newEvent);
+            newEvent.id = docId;
+            displayEvent(newEvent); // update UI
+            form.reset();
+        });
+    }
+
+    // --- REPLACE EVENT DELETION LOGIC ---
+    // When deleting an event from the calendar UI, also delete from Firestore:
+    function handleDeleteEvent(eventId) {
+        // Remove from calendar UI
+        const event = calendar.getEventById(eventId);
+        if (event) event.remove();
+        // Remove from Firestore
+        deleteEvent(eventId);
+    }
+
+    // Example: If you have a delete button in your event edit modal:
+    // Make sure submitButton is declared before using it
+    var submitButton = createEventForm ? createEventForm.querySelector('button[type="submit"]') : null;
+    if (!document.getElementById('delete-event-btn') && submitButton) {
+        var deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.id = 'delete-event-btn';
+        deleteButton.textContent = 'Delete Event';
+        deleteButton.style.backgroundColor = '#dc3545';
+        deleteButton.style.color = '#fff';
+        deleteButton.style.border = 'none';
+        deleteButton.style.borderRadius = '4px';
+        deleteButton.style.padding = '6px 12px';
+        deleteButton.style.fontSize = '1em';
+        deleteButton.style.cursor = 'pointer';
+        deleteButton.style.marginLeft = '8px';
+        deleteButton.style.transition = 'background 0.2s';
+        
+        deleteButton.addEventListener('click', function() {
+            if (editingEvent) {
+                handleDeleteEvent(editingEvent.id);
+                resetEventForm();
+            }
+        });
+        
+        deleteButton.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#c82333';
+        });
+        
+        deleteButton.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#dc3545';
+        });
+        
+        submitButton.parentNode.appendChild(deleteButton);
+    }
+
+    // --- DISPLAY EVENT HELPER ---
+    function displayEvent(eventData) {
+        calendar.addEvent({
+            id: eventData.id,
+            title: eventData.title,
+            start: eventData.start,
+            end: eventData.end,
+            allDay: false,
+            backgroundColor: eventData.backgroundColor,
+            borderColor: eventData.borderColor,
+            textColor: eventData.textColor,
+            extendedProps: {
+                category: eventData.category,
+                email: eventData.email,
+                location: eventData.location,
+                description: eventData.description
+            }
+        });
+    }
+
     // Local Storage Functions
     function saveEventsToStorage() {
         var events = calendar.getEvents().map(function(event) {
@@ -1071,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add legend button functionality
     if (addKeyBtn) {
         addKeyBtn.addEventListener('click', function() {
+            console.log('eureka');
             var li = document.createElement('li');
 
             // Preset color options add strong + pastel colors
