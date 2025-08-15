@@ -1,3 +1,14 @@
+// --- FIREBASE INITIALIZATION ---
+// Place this at the very top of your script, before any db usage.
+var db = null;
+if (typeof firebase !== "undefined" && typeof firebaseConfig !== "undefined") {
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    // Ensure db is assigned before any usage
+    db = firebase.firestore();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var legendContainer = document.getElementById('legend-container');
@@ -114,13 +125,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
-    // --- FIREBASE EVENT FUNCTIONS ---
-    // These should be defined somewhere in your script, or import them if in another file.
-    // Example implementations (adjust as needed):
+    // --- FIREBASE INITIALIZATION ---
+    // Add this at the top of your script, before any db usage.
+    // Make sure you have your firebaseConfig object defined somewhere above this.
+    if (typeof firebase !== "undefined" && typeof firebaseConfig !== "undefined") {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        var db = firebase.firestore();
+    }
+
+    // --- FIREBASE EVENT FUNCTIONS (using Firestore v9+ modular syntax) ---
+    // You must have Firestore imported and initialized as 'db' in your HTML or elsewhere.
+
     async function addEvent(event) {
         // Returns the Firestore document ID
         const docRef = await db.collection("events").add(event);
-        return docRef.id;
+        event.id = docRef.id;
+        return event;
     }
     async function getAllEvents() {
         const snapshot = await db.collection("events").get();
@@ -129,29 +151,57 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = doc.data();
             events.push({ id: doc.id, ...data });
         });
-        const now = new Date();
-        events.forEach(event => {
-            const eventDate = new Date(event.date);
-            const diffDays = (now - eventDate) / (1000 * 60 * 60 * 24);
-            if (diffDays > 30) {
-                deleteEvent(event.id);
-            }
-        });
         return events;
     }
     async function deleteEvent(eventId) {
         await db.collection("events").doc(eventId).delete();
     }
 
-    // --- REPLACE LOAD EVENTS ON PAGE LOAD ---
-    document.addEventListener("DOMContentLoaded", async () => {
-        const events = await getAllEvents();
-        events.forEach(e => {
-            displayEvent(e);
+    // --- REAL-TIME FIREBASE HOOKS ---
+    function subscribeToEvents() {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        db.collection("events").onSnapshot(snapshot => {
+            calendar.getEvents().forEach(ev => ev.remove());
+            snapshot.forEach(doc => {
+                displayEvent({ id: doc.id, ...doc.data() });
+            });
         });
-    });
+    }
 
-    // --- REPLACE EVENT CREATION LOGIC ---
+    // --- DISPLAY EVENT HELPER ---
+    function displayEvent(eventData) {
+        // Prevent duplicates
+        if (calendar.getEventById(eventData.id)) return;
+        calendar.addEvent({
+            id: eventData.id,
+            title: eventData.title,
+            start: eventData.start,
+            end: eventData.end,
+            allDay: false,
+            backgroundColor: eventData.backgroundColor,
+            borderColor: eventData.borderColor,
+            textColor: eventData.textColor,
+            extendedProps: {
+                category: eventData.category,
+                email: eventData.email,
+                location: eventData.location,
+                description: eventData.description
+            }
+        });
+    }
+
+    // --- HOOK UP REAL-TIME LOADING ON PAGE LOAD ---
+    // Ensure db is initialized before calling subscribeToEvents
+    if (db) {
+        subscribeToEvents();
+    } else {
+        console.error("Firestore db is not initialized. Events will not sync.");
+    }
+
+    // --- ADD EVENT FORM SUBMISSION ---
     if (createEventForm) {
         const form = createEventForm;
         const titleInput = document.getElementById('event-title');
@@ -176,25 +226,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 createdAt: Date.now()
             };
 
-            const docId = await addEvent(newEvent);
-            newEvent.id = docId;
-            displayEvent(newEvent); // update UI
+            await addEvent(newEvent);
             form.reset();
         });
     }
 
-    // --- REPLACE EVENT DELETION LOGIC ---
-    // When deleting an event from the calendar UI, also delete from Firestore:
+    // --- DELETE EVENT HANDLER (UI + FIREBASE) ---
     function handleDeleteEvent(eventId) {
-        // Remove from calendar UI
+        // Remove from calendar UI (will also be removed by onSnapshot, but for instant feedback)
         const event = calendar.getEventById(eventId);
         if (event) event.remove();
         // Remove from Firestore
         deleteEvent(eventId);
     }
 
-    // Example: If you have a delete button in your event edit modal:
-    // Make sure submitButton is declared before using it
+    // --- Example: Hook delete button in event edit modal ---
     var submitButton = createEventForm ? createEventForm.querySelector('button[type="submit"]') : null;
     if (!document.getElementById('delete-event-btn') && submitButton) {
         var deleteButton = document.createElement('button');
@@ -210,22 +256,22 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteButton.style.cursor = 'pointer';
         deleteButton.style.marginLeft = '8px';
         deleteButton.style.transition = 'background 0.2s';
-        
+
         deleteButton.addEventListener('click', function() {
             if (editingEvent) {
                 handleDeleteEvent(editingEvent.id);
                 resetEventForm();
             }
         });
-        
+
         deleteButton.addEventListener('mouseenter', function() {
             this.style.backgroundColor = '#c82333';
         });
-        
+
         deleteButton.addEventListener('mouseleave', function() {
             this.style.backgroundColor = '#dc3545';
         });
-        
+
         submitButton.parentNode.appendChild(deleteButton);
     }
 
