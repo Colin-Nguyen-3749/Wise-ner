@@ -148,8 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error("Firestore db is not initialized.");
             return;
         }
+        console.log("Adding event to Firestore:", event);
         // Add event to Firestore; UI will update via onSnapshot
-        await db.collection("events").add(event);
+        const docRef = await db.collection("events").add(event);
+        console.log("Event added with ID:", docRef.id);
+        return docRef.id;
     }
     
     async function updateEvent(eventId, eventData) {
@@ -208,10 +211,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add all events from Firestore
             snapshot.forEach(doc => {
                 const data = doc.data();
-                console.log("Loading event:", data.title);
+                console.log("Loading event from Firestore:", data);
+                
                 // Convert ISO strings back to Date objects if they exist
-                const startDate = data.start ? new Date(data.start) : null;
-                const endDate = data.end ? new Date(data.end) : null;
+                let startDate = null;
+                let endDate = null;
+                
+                if (data.start) {
+                    startDate = new Date(data.start);
+                    console.log("Converted start date:", startDate);
+                }
+                if (data.end) {
+                    endDate = new Date(data.end);
+                    console.log("Converted end date:", endDate);
+                }
                 
                 calendar.addEvent({
                     id: doc.id,
@@ -229,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         description: data.description || ''
                     }
                 });
+                console.log("Event added to calendar:", data.title);
             });
         }, error => {
             console.error("Error in Firestore listener:", error);
@@ -290,33 +304,207 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Firestore db is not initialized. Events will not sync.");
     }
 
-    // --- ADD EVENT FORM SUBMISSION ---
+    // Handle event creation form submission
     if (createEventForm) {
-        const form = createEventForm;
-        const titleInput = document.getElementById('event-title');
-        const startTime = document.getElementById('event-start');
-        const endTime = document.getElementById('event-end');
-        const categoryInput = document.getElementById('event-category');
-        const emailInput = document.getElementById('event-email');
-        const locationInput = document.getElementById('event-location');
-        const descriptionInput = document.getElementById('event-description');
-
-        form.addEventListener("submit", async (e) => {
+        createEventForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            console.log("Form submitted, current step:", currentFormStep);
+            
+            // If we're on step 1, validate and go to step 2
+            if (currentFormStep === 1) {
+                var title = document.getElementById('event-title').value.trim();
+                var startTime = document.getElementById('event-start').value.trim();
+                var endTime = document.getElementById('event-end').value.trim();
+                
+                console.log("Step 1 validation - Title:", title, "Start:", startTime, "End:", endTime);
+                
+                // Validate required fields
+                if (!title) {
+                    alert('Please enter an event title');
+                    return;
+                }
+                
+                if (!startTime) {
+                    alert('Please select a start time');
+                    return;
+                }
+                
+                if (!endTime) {
+                    alert('Please select an end time');
+                    return;
+                }
+                
+                // Validate time logic
+                var startParsed = parseTime(startTime);
+                var endParsed = parseTime(endTime);
+                
+                if (!startParsed || !endParsed) {
+                    alert('Please enter valid times');
+                    return;
+                }
+                
+                // Check if start time is after end time
+                if (isStartTimeAfterEndTime(startParsed, endParsed)) {
+                    alert('Start time cannot be after end time. Please adjust your times.');
+                    return;
+                }
+                
+                showFormStep2();
+                return;
+            }
+            
+            // If we're on step 2, create/update the event
+            var title = document.getElementById('event-title').value.trim();
+            var startTime = document.getElementById('event-start').value;
+            var endTime = document.getElementById('event-end').value;
+            var categorySelect = document.getElementById('event-category');
+            var emailInput = document.getElementById('event-email');
+            var locationInput = document.getElementById('event-location');
+            var descriptionInput = document.getElementById('event-description');
 
-            const newEvent = {
-                title: titleInput.value,
-                start: startTime.value,
-                end: endTime.value,
-                category: categoryInput ? categoryInput.value : "",
-                email: emailInput ? emailInput.value : "",
-                location: locationInput ? locationInput.value : "",
-                description: descriptionInput ? descriptionInput.value : "",
-                createdAt: Date.now()
-            };
+            console.log("Step 2 - Creating/updating event");
 
-            await addEvent(newEvent);
-            form.reset();
+            if (title) {
+                // Show loading feedback
+                var submitButton = createEventForm.querySelector('button[type="submit"]');
+                var originalText = submitButton.textContent;
+                submitButton.textContent = 'Saving...';
+                submitButton.disabled = true;
+
+                try {
+                    // Get additional details
+                    var location = locationInput ? locationInput.value.trim() : '';
+                    var description = descriptionInput ? descriptionInput.value.trim() : '';
+                    
+                    // Determine if we're editing or creating
+                    if (editingEvent) {
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
+                        }
+                        
+                        // Parse times
+                        var startDate = new Date(editingEvent.start);
+                        var endDate = new Date(editingEvent.start);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        // Update event in Firestore
+                        await updateEvent(editingEvent.id, {
+                            title: title,
+                            start: startDate.toISOString(),
+                            end: endDate.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            updatedAt: Date.now()
+                        });
+                        
+                        console.log("Event updated successfully");
+                        resetEventForm();
+                    } else {
+                        // Create new event
+                        var currentDate = calendar.view.currentStart; // current day in view
+                        var start = new Date(currentDate);
+                        var end = new Date(currentDate);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
+                        }
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
+                        }
+                        
+                        // Get email if provided
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        console.log("Creating event with data:", {
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            category: categoryName,
+                            email: contactEmail
+                        });
+                        
+                        // Add event to Firestore (not calendar directly - onSnapshot will handle that)
+                        await addEvent({
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            createdAt: Date.now()
+                        });
+                        
+                        console.log("Event created successfully");
+                        
+                        // Reset form and go back to step 1 for new event creation
+                        createEventForm.reset();
+                        resetEventForm();
+                        updateCategoryDropdown(); // Reset dropdown to default
+                        
+                        // Show success feedback
+                        submitButton.textContent = 'Event Created!';
+                        setTimeout(() => {
+                            submitButton.textContent = 'Next';
+                            submitButton.disabled = false;
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.error("Error saving event:", error);
+                    alert("Error saving event. Please try again.");
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }
+            }
         });
     }
 
@@ -1022,11 +1210,15 @@ document.addEventListener('DOMContentLoaded', function() {
         createEventForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            console.log("Form submitted, current step:", currentFormStep);
+            
             // If we're on step 1, validate and go to step 2
             if (currentFormStep === 1) {
                 var title = document.getElementById('event-title').value.trim();
                 var startTime = document.getElementById('event-start').value.trim();
                 var endTime = document.getElementById('event-end').value.trim();
+                
+                console.log("Step 1 validation - Title:", title, "Start:", startTime, "End:", endTime);
                 
                 // Validate required fields
                 if (!title) {
@@ -1072,110 +1264,1744 @@ document.addEventListener('DOMContentLoaded', function() {
             var locationInput = document.getElementById('event-location');
             var descriptionInput = document.getElementById('event-description');
 
+            console.log("Step 2 - Creating/updating event");
+
             if (title) {
-                // Get additional details
-                var location = locationInput ? locationInput.value.trim() : '';
-                var description = descriptionInput ? descriptionInput.value.trim() : '';
-                
-                // Determine if we're editing or creating
-                if (editingEvent) {
-                    // Get selected category color
-                    var eventColor = '#3788d8'; // default blue
-                    var categoryName = 'Default';
-                    if (categorySelect && categorySelect.value) {
-                        var selectedOption = categorySelect.options[categorySelect.selectedIndex];
-                        if (selectedOption.dataset.color) {
-                            eventColor = selectedOption.dataset.color;
-                            categoryName = selectedOption.textContent;
+                // Show loading feedback
+                var submitButton = createEventForm.querySelector('button[type="submit"]');
+                var originalText = submitButton.textContent;
+                submitButton.textContent = 'Saving...';
+                submitButton.disabled = true;
+
+                try {
+                    // Get additional details
+                    var location = locationInput ? locationInput.value.trim() : '';
+                    var description = descriptionInput ? descriptionInput.value.trim() : '';
+                    
+                    // Determine if we're editing or creating
+                    if (editingEvent) {
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
                         }
-                    }
-                    
-                    // Parse times
-                    var startDate = new Date(editingEvent.start);
-                    var endDate = new Date(editingEvent.start);
-                    
-                    if (startTime) {
-                        var startParsed = parseTime(startTime);
-                        if (startParsed) {
-                            startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                        
+                        // Parse times
+                        var startDate = new Date(editingEvent.start);
+                        var endDate = new Date(editingEvent.start);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
                         }
-                    }
-                    
-                    if (endTime) {
-                        var endParsed = parseTime(endTime);
-                        if (endParsed) {
-                            endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                        
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
                         }
+                        
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        // Update event in Firestore
+                        await updateEvent(editingEvent.id, {
+                            title: title,
+                            start: startDate.toISOString(),
+                            end: endDate.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            updatedAt: Date.now()
+                        });
+                        
+                        console.log("Event updated successfully");
+                        resetEventForm();
+                    } else {
+                        // Create new event
+                        var currentDate = calendar.view.currentStart; // current day in view
+                        var start = new Date(currentDate);
+                        var end = new Date(currentDate);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
+                        }
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
+                        }
+                        
+                        // Get email if provided
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        console.log("Creating event with data:", {
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            category: categoryName,
+                            email: contactEmail
+                        });
+                        
+                        // Add event to Firestore (not calendar directly - onSnapshot will handle that)
+                        await addEvent({
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            createdAt: Date.now()
+                        });
+                        
+                        console.log("Event created successfully");
+                        
+                        // Reset form and go back to step 1 for new event creation
+                        createEventForm.reset();
+                        resetEventForm();
+                        updateCategoryDropdown(); // Reset dropdown to default
+                        
+                        // Show success feedback
+                        submitButton.textContent = 'Event Created!';
+                        setTimeout(() => {
+                            submitButton.textContent = 'Next';
+                            submitButton.disabled = false;
+                        }, 1500);
                     }
-                    
-                    var contactEmail = emailInput ? emailInput.value.trim() : '';
-                    
-                    // Update event in Firestore
-                    await updateEvent(editingEvent.id, {
-                        title: title,
-                        start: startDate.toISOString(),
-                        end: endDate.toISOString(),
-                        backgroundColor: eventColor,
-                        borderColor: eventColor,
-                        textColor: '#ffffff',
-                        category: categoryName,
-                        email: contactEmail,
-                        location: location,
-                        description: description,
-                        updatedAt: Date.now()
+                } catch (error) {
+                    console.error("Error saving event:", error);
+                    alert("Error saving event. Please try again.");
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }
+            }
+        });
+    }
+
+    // --- DELETE EVENT HANDLER (UI + FIREBASE) ---
+    function handleDeleteEvent(eventId) {
+        // Only remove from Firestore; UI will update via onSnapshot
+        deleteEvent(eventId);
+    }
+
+    // --- Example: Hook delete button in event edit modal ---
+    var submitButton = createEventForm ? createEventForm.querySelector('button[type="submit"]') : null;
+    if (!document.getElementById('delete-event-btn') && submitButton) {
+        var deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.id = 'delete-event-btn';
+        deleteButton.textContent = 'Delete Event';
+        deleteButton.style.backgroundColor = '#dc3545';
+        deleteButton.style.color = '#fff';
+        deleteButton.style.border = 'none';
+        deleteButton.style.borderRadius = '4px';
+        deleteButton.style.padding = '6px 12px';
+        deleteButton.style.fontSize = '1em';
+        deleteButton.style.cursor = 'pointer';
+        deleteButton.style.marginLeft = '8px';
+        deleteButton.style.transition = 'background 0.2s';
+
+        deleteButton.addEventListener('click', function() {
+            if (editingEvent) {
+                handleDeleteEvent(editingEvent.id);
+                resetEventForm();
+            }
+        });
+
+        deleteButton.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#c82333';
+        });
+
+        deleteButton.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#dc3545';
+        });
+
+        submitButton.parentNode.appendChild(deleteButton);
+    }
+
+    // --- DISPLAY EVENT HELPER ---
+    function displayEvent(eventData) {
+        calendar.addEvent({
+            id: eventData.id,
+            title: eventData.title,
+            start: eventData.start,
+            end: eventData.end,
+            allDay: false,
+            backgroundColor: eventData.backgroundColor,
+            borderColor: eventData.borderColor,
+            textColor: eventData.textColor,
+            extendedProps: {
+                category: eventData.category,
+                email: eventData.email,
+                location: eventData.location,
+                description: eventData.description
+            }
+        });
+    }
+
+    // Local Storage Functions
+    function saveEventsToStorage() {
+        var events = calendar.getEvents().map(function(event) {
+            return {
+                id: event.id,
+                title: event.title,
+                start: event.start ? event.start.toISOString() : null,
+                end: event.end ? event.end.toISOString() : null,
+                allDay: event.allDay,
+                backgroundColor: event.backgroundColor,
+                borderColor: event.borderColor,
+                textColor: event.textColor,
+                extendedProps: event.extendedProps
+            };
+        });
+        localStorage.setItem('wise-ner-events', JSON.stringify(events));
+    }
+
+    function loadEventsFromStorage() {
+        var storedEvents = localStorage.getItem('wise-ner-events');
+        if (storedEvents) {
+            try {
+                var events = JSON.parse(storedEvents);
+                events.forEach(function(eventData) {
+                    calendar.addEvent({
+                        id: eventData.id,
+                        title: eventData.title,
+                        start: eventData.start ? new Date(eventData.start) : null,
+                        end: eventData.end ? new Date(eventData.end) : null,
+                        allDay: eventData.allDay,
+                        backgroundColor: eventData.backgroundColor,
+                        borderColor: eventData.borderColor,
+                        textColor: eventData.textColor,
+                        extendedProps: eventData.extendedProps
                     });
-                    
-                    resetEventForm();
+                });
+            } catch (e) {
+                console.error('Error loading events from storage:', e);
+            }
+        }
+    }
+
+    function createLegendItemFromFirestore(color, name, firestoreId) {
+        // Make sure legendList exists
+        if (!legendList) {
+            console.error('Legend list not found');
+            return;
+        }
+
+        var li = document.createElement('li');
+        li.dataset.firestoreId = firestoreId; // Store Firestore ID for updates/deletes
+
+        // Preset color options
+        var colors = [
+            "#ff0000ff", "#ff7300ff", "#ffae00ff", "#ffff00ff", "#48da74ff",
+            "#4c9967ff", "#4f6de4ff", "#a45ff7ff", "#e97bffff",
+            "#e2a6d0ff"
+        ];
+
+        // Color circle
+        var colorCircle = document.createElement('span');
+        colorCircle.className = 'legend-color-circle';
+        colorCircle.style.background = color;
+        colorCircle.style.marginRight = '8px';
+
+        // Color menu (hidden by default)
+        var colorMenu = document.createElement('div');
+        colorMenu.className = 'legend-color-menu';
+        colorMenu.style.display = 'none';
+
+        colors.forEach(function(colorOption) {
+            var colorOptionElement = document.createElement('span');
+            colorOptionElement.className = 'legend-color-option';
+            colorOptionElement.style.background = colorOption;
+            colorOptionElement.setAttribute('data-color', colorOption);
+            colorOptionElement.addEventListener('click', async function(e) {
+                colorCircle.style.background = colorOption;
+                colorMenu.style.display = 'none';
+                // Update in Firestore instead of localStorage
+                await updateLegendItem(firestoreId, {
+                    color: colorOption,
+                    name: name,
+                    updatedAt: Date.now()
+                });
+            });
+            colorMenu.appendChild(colorOptionElement);
+        });
+
+        // Show/hide color menu on circle click
+        colorCircle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            colorMenu.style.display = colorMenu.style.display === 'none' ? 'grid' : 'none';
+        });
+
+        // Hide color menu if clicking elsewhere
+        document.addEventListener('click', function() {
+            colorMenu.style.display = 'none';
+        });
+
+        // Category name display
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.className = 'legend-name-text';
+        nameSpan.style.flex = '1';
+        nameSpan.style.cursor = 'pointer';
+        nameSpan.style.padding = '2px 6px';
+        nameSpan.style.borderRadius = '4px';
+
+        // Create input for editing
+        var nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'legend-name-input';
+        nameInput.style.flex = '1';
+        nameInput.style.fontSize = '1em';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+
+        // Double-click to edit
+        nameSpan.addEventListener('dblclick', function() {
+            li.replaceChild(nameInput, nameSpan);
+            nameInput.value = nameSpan.textContent;
+            nameInput.focus();
+        });
+
+        // Save on Enter or blur
+        async function saveNameEdit() {
+            var value = nameInput.value.trim() || 'Unnamed';
+            nameSpan.textContent = value;
+            li.replaceChild(nameSpan, nameInput);
+            // Update in Firestore instead of localStorage
+            await updateLegendItem(firestoreId, {
+                color: color,
+                name: value,
+                updatedAt: Date.now()
+            });
+        }
+
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNameEdit();
+            }
+        });
+
+        nameInput.addEventListener('blur', saveNameEdit);
+
+        // Add delete functionality with right-click
+        li.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (confirm('Delete this legend item?')) {
+                // Delete from Firestore instead of just removing from UI
+                deleteLegendItem(firestoreId);
+            }
+        });
+
+        li.appendChild(colorCircle);
+        li.appendChild(colorMenu);
+        li.appendChild(nameSpan);
+        legendList.appendChild(li);
+    }
+
+    function createLegendItem(color, name) {
+        // This function now just calls the Firestore version
+        createLegendItemFromFirestore(color, name, null);
+    }
+
+    // Legend functionality - Define variables first
+    var legendList = document.getElementById('legend-list');
+    var addKeyBtn = document.getElementById('add-key-btn');
+
+    // Remove localStorage loading - now handled by Firebase
+    // loadLegendFromStorage();
+
+    // Global variable to track if we're editing an event
+    var editingEvent = null;
+
+    // Global variable to track current form step
+    var currentFormStep = 1;
+
+    // Function to open event edit modal
+    function openEventEditModal(event) {
+        editingEvent = event;
+        
+        // Reset to step 1
+        showFormStep1();
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Edit Event';
+        }
+        
+        // Add exit button if it doesn't exist
+        if (!document.getElementById('edit-exit-btn')) {
+            var exitButton = document.createElement('button');
+            exitButton.type = 'button';
+            exitButton.id = 'edit-exit-btn';
+            exitButton.innerHTML = '&times;';
+            exitButton.style.cssText = `
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                font-weight: bold;
+                color: #666;
+                cursor: pointer;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: background-color 0.2s, color 0.2s;
+                z-index: 10;
+            `;
+            
+            exitButton.addEventListener('click', function() {
+                resetEventForm();
+                // Return to appropriate view based on current calendar view
+                if (calendar.view.type === 'timeGridDay') {
+                    // Stay in day view but reset form
                 } else {
-                    // Create new event
-                    var date = calendar.view.currentStart; // current day in view
-                    var start = new Date(date);
-                    var end = new Date(date);
-                    
-                    if (startTime) {
-                        var startParsed = parseTime(startTime);
-                        if (startParsed) {
-                            start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
-                        }
+                    // Go back to month view or previous view
+                    calendar.changeView('dayGridMonth');
+                }
+            });
+            
+            exitButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f0f0f0';
+                this.style.color = '#333';
+            });
+            
+            exitButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'transparent';
+                this.style.color = '#666';
+            });
+            
+            // Make the event container positioned relative for absolute positioning
+            eventCreateContainer.style.position = 'relative';
+            eventCreateContainer.appendChild(exitButton);
+        }
+        
+        // Populate form with event data
+        var titleInput = document.getElementById('event-title');
+        var startInput = document.getElementById('event-start');
+        var endInput = document.getElementById('event-end');
+        var categorySelect = document.getElementById('event-category');
+        var emailInput = document.getElementById('event-email');
+        var locationInput = document.getElementById('event-location');
+        var descriptionInput = document.getElementById('event-description');
+        
+        if (titleInput) titleInput.value = event.title || '';
+        
+        // Format times for display
+        if (event.start && startInput) {
+            var startTime = event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            startInput.value = startTime;
+        }
+        
+        if (event.end && endInput) {
+            var endTime = event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            endInput.value = endTime;
+        }
+        
+        // Set category if it exists
+        if (categorySelect && event.extendedProps && event.extendedProps.category) {
+            var categoryValue = event.extendedProps.category;
+            for (var i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].textContent === categoryValue) {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // Set email if it exists
+        if (emailInput && event.extendedProps && event.extendedProps.email) {
+            emailInput.value = event.extendedProps.email;
+        }
+        
+        // Set location and description if they exist
+        if (locationInput && event.extendedProps && event.extendedProps.location) {
+            locationInput.value = event.extendedProps.location;
+        }
+        
+        if (descriptionInput && event.extendedProps && event.extendedProps.description) {
+            descriptionInput.value = event.extendedProps.description;
+        }
+        
+        // Change submit button to update button and add delete button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Add delete button if it doesn't exist
+        if (!document.getElementById('delete-event-btn')) {
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.id = 'delete-event-btn';
+            deleteButton.textContent = 'Delete Event';
+            deleteButton.style.backgroundColor = '#dc3545';
+            deleteButton.style.color = '#fff';
+            deleteButton.style.border = 'none';
+            deleteButton.style.borderRadius = '4px';
+            deleteButton.style.padding = '6px 12px';
+            deleteButton.style.fontSize = '1em';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.style.marginLeft = '8px';
+            deleteButton.style.transition = 'background 0.2s';
+            
+            deleteButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    if (editingEvent) {
+                        // Delete from Firestore instead of just removing from calendar
+                        handleDeleteEvent(editingEvent.id);
+                        resetEventForm();
                     }
-                    if (endTime) {
-                        var endParsed = parseTime(endTime);
-                        if (endParsed) {
-                            end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
-                        }
+                }
+            });
+            
+            deleteButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#c82333';
+            });
+            
+            deleteButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#dc3545';
+            });
+            
+            submitButton.parentNode.appendChild(deleteButton);
+        }
+        
+        // Show the event create container
+        if (legendContainer) legendContainer.style.display = 'none';
+        if (eventCreateContainer) eventCreateContainer.style.display = '';
+    }
+
+    // Function to reset the event form to create mode
+    function resetEventForm() {
+        editingEvent = null;
+        currentFormStep = 1;
+        
+        // Reset to step 1
+        showFormStep1();
+        
+        // Reset form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Create Event';
+        }
+        
+        // Clear form
+        if (createEventForm) {
+            createEventForm.reset();
+        }
+        
+        // Reset submit button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Remove delete button
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.remove();
+        }
+        
+        // Remove exit button
+        var exitButton = document.getElementById('edit-exit-btn');
+        if (exitButton) {
+            exitButton.remove();
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+        
+        // Reset dropdown
+        updateCategoryDropdown();
+    }
+
+    // Function to show step 2 of the form
+    function showFormStep2() {
+        currentFormStep = 2;
+        
+        // Hide step 1 elements and their labels
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el) {
+                // Hide the input/select element
+                el.style.display = 'none';
+                
+                // Find and hide the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'none';
                     }
-                    
-                    // Get selected category color
-                    var eventColor = '#3788d8'; // default blue
-                    var categoryName = 'Default';
-                    if (categorySelect && categorySelect.value) {
-                        var selectedOption = categorySelect.options[categorySelect.selectedIndex];
-                        if (selectedOption.dataset.color) {
-                            eventColor = selectedOption.dataset.color;
-                            categoryName = selectedOption.textContent;
-                        }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
+                }
+            }
+        });
+        
+        // Also hide any remaining labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:') {
+                label.style.display = 'none';
+            }
+        });
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent;
+            formTitle.textContent = currentTitle + ' (Further Details)';
+        }
+        
+        // Create step 2 elements if they don't exist
+        if (!document.getElementById('event-location')) {
+            createStep2Elements();
+        }
+        
+        // Show step 2 elements
+        showStep2Elements();
+        
+        // Update button text and functionality
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = editingEvent ? 'Update Event' : 'Create Event';
+        }
+        
+        // Add back button
+        if (!document.getElementById('back-btn')) {
+            var backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.id = 'back-btn';
+            backButton.textContent = 'Back';
+            backButton.style.cssText = `
+                background: #6c757d;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-right: 8px;
+                transition: background 0.2s;
+            `;
+            
+            backButton.addEventListener('click', function() {
+                showFormStep1();
+            });
+            
+            backButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#5a6268';
+            });
+            
+            backButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#6c757d';
+            });
+            
+            submitButton.parentNode.insertBefore(backButton, submitButton);
+        }
+        
+        // Hide delete button in step 2
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.style.display = 'none';
+        }
+    }
+
+    // Function to show step 1 of the form
+    function showFormStep1() {
+        currentFormStep = 1;
+        
+        // Show step 1 elements and their labels
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el) {
+                // Show the input/select element
+                el.style.display = 'block';
+                
+                // Find and show the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'block';
                     }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
+            }
+        });
+        
+        // Show step 1 labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:' ||
+                labelText === 'Category:' || labelText === 'Contact Email:') {
+                label.style.display = 'block';
+            }
+        });
+        
+        // Hide step 2 elements
+        hideStep2Elements();
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent.replace(' - Additional Details', '');
+            formTitle.textContent = currentTitle;
+        }
+        
+        // Update button text
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+        
+        // Show delete button in step 1 if editing
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton && editingEvent) {
+            deleteButton.style.display = 'inline-block';
+        }
+    }
+
+    // Function to create step 2 form elements
+    function createStep2Elements() {
+        var form = createEventForm;
+        var submitButton = form.querySelector('button[type="submit"]');
+        
+        // Create location input
+        var locationLabel = document.createElement('label');
+        locationLabel.textContent = 'Location (optional):';
+        locationLabel.style.display = 'none';
+        
+        var locationInput = document.createElement('input');
+        locationInput.type = 'text';
+        locationInput.id = 'event-location';
+        locationInput.placeholder = 'Enter event location';
+        locationInput.style.display = 'none';
+        
+        // Create description textarea
+        var descriptionLabel = document.createElement('label');
+        descriptionLabel.textContent = 'Description (optional):';
+        descriptionLabel.style.display = 'none';
+        
+        var descriptionInput = document.createElement('textarea');
+        descriptionInput.id = 'event-description';
+        descriptionInput.placeholder = 'Enter event description';
+        descriptionInput.rows = 4;
+        descriptionInput.style.display = 'none';
+        
+        // Insert before submit button
+        form.insertBefore(locationLabel, submitButton);
+        form.insertBefore(locationInput, submitButton);
+        form.insertBefore(descriptionLabel, submitButton);
+        form.insertBefore(descriptionInput, submitButton);
+    }
+
+    // Function to show step 2 elements
+    function showStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'block';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Function to hide step 2 elements
+    function hideStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'none';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Handle event creation form submission
+    if (createEventForm) {
+        createEventForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log("Form submitted, current step:", currentFormStep);
+            
+            // If we're on step 1, validate and go to step 2
+            if (currentFormStep === 1) {
+                var title = document.getElementById('event-title').value.trim();
+                var startTime = document.getElementById('event-start').value.trim();
+                var endTime = document.getElementById('event-end').value.trim();
+                
+                console.log("Step 1 validation - Title:", title, "Start:", startTime, "End:", endTime);
+                
+                // Validate required fields
+                if (!title) {
+                    alert('Please enter an event title');
+                    return;
+                }
+                
+                if (!startTime) {
+                    alert('Please select a start time');
+                    return;
+                }
+                
+                if (!endTime) {
+                    alert('Please select an end time');
+                    return;
+                }
+                
+                // Validate time logic
+                var startParsed = parseTime(startTime);
+                var endParsed = parseTime(endTime);
+                
+                if (!startParsed || !endParsed) {
+                    alert('Please enter valid times');
+                    return;
+                }
+                
+                // Check if start time is after end time
+                if (isStartTimeAfterEndTime(startParsed, endParsed)) {
+                    alert('Start time cannot be after end time. Please adjust your times.');
+                    return;
+                }
+                
+                showFormStep2();
+                return;
+            }
+            
+            // If we're on step 2, create/update the event
+            var title = document.getElementById('event-title').value.trim();
+            var startTime = document.getElementById('event-start').value;
+            var endTime = document.getElementById('event-end').value;
+            var categorySelect = document.getElementById('event-category');
+            var emailInput = document.getElementById('event-email');
+            var locationInput = document.getElementById('event-location');
+            var descriptionInput = document.getElementById('event-description');
+
+            console.log("Step 2 - Creating/updating event");
+
+            if (title) {
+                // Show loading feedback
+                var submitButton = createEventForm.querySelector('button[type="submit"]');
+                var originalText = submitButton.textContent;
+                submitButton.textContent = 'Saving...';
+                submitButton.disabled = true;
+
+                try {
+                    // Get additional details
+                    var location = locationInput ? locationInput.value.trim() : '';
+                    var description = descriptionInput ? descriptionInput.value.trim() : '';
                     
-                    // Get email if provided
-                    var contactEmail = emailInput ? emailInput.value.trim() : '';
-                    
-                    // Add event to Firestore (not calendar directly - onSnapshot will handle that)
-                    await addEvent({
-                        title: title,
-                        start: start.toISOString(),
-                        end: end.toISOString(),
-                        backgroundColor: eventColor,
-                        borderColor: eventColor,
-                        textColor: '#ffffff',
-                        category: categoryName,
-                        email: contactEmail,
-                        location: location,
-                        description: description,
-                        createdAt: Date.now()
+                    // Determine if we're editing or creating
+                    if (editingEvent) {
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
+                        }
+                        
+                        // Parse times
+                        var startDate = new Date(editingEvent.start);
+                        var endDate = new Date(editingEvent.start);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        // Update event in Firestore
+                        await updateEvent(editingEvent.id, {
+                            title: title,
+                            start: startDate.toISOString(),
+                            end: endDate.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            updatedAt: Date.now()
+                        });
+                        
+                        console.log("Event updated successfully");
+                        resetEventForm();
+                    } else {
+                        // Create new event
+                        var currentDate = calendar.view.currentStart; // current day in view
+                        var start = new Date(currentDate);
+                        var end = new Date(currentDate);
+                        
+                        if (startTime) {
+                            var startParsed = parseTime(startTime);
+                            if (startParsed) {
+                                start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                            }
+                        }
+                        if (endTime) {
+                            var endParsed = parseTime(endTime);
+                            if (endParsed) {
+                                end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                            }
+                        }
+                        
+                        // Get selected category color
+                        var eventColor = '#3788d8'; // default blue
+                        var categoryName = 'Default';
+                        if (categorySelect && categorySelect.value) {
+                            var selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            if (selectedOption.dataset.color) {
+                                eventColor = selectedOption.dataset.color;
+                                categoryName = selectedOption.textContent;
+                            }
+                        }
+                        
+                        // Get email if provided
+                        var contactEmail = emailInput ? emailInput.value.trim() : '';
+                        
+                        console.log("Creating event with data:", {
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            category: categoryName,
+                            email: contactEmail
+                        });
+                        
+                        // Add event to Firestore (not calendar directly - onSnapshot will handle that)
+                        await addEvent({
+                            title: title,
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            backgroundColor: eventColor,
+                            borderColor: eventColor,
+                            textColor: '#ffffff',
+                            category: categoryName,
+                            email: contactEmail,
+                            location: location,
+                            description: description,
+                            createdAt: Date.now()
+                        });
+                        
+                        console.log("Event created successfully");
+                        
+                        // Reset form and go back to step 1 for new event creation
+                        createEventForm.reset();
+                        resetEventForm();
+                        updateCategoryDropdown(); // Reset dropdown to default
+                        
+                        // Show success feedback
+                        submitButton.textContent = 'Event Created!';
+                        setTimeout(() => {
+                            submitButton.textContent = 'Next';
+                            submitButton.disabled = false;
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.error("Error saving event:", error);
+                    alert("Error saving event. Please try again.");
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                }
+            }
+        });
+    }
+
+    // --- DELETE EVENT HANDLER (UI + FIREBASE) ---
+    function handleDeleteEvent(eventId) {
+        // Only remove from Firestore; UI will update via onSnapshot
+        deleteEvent(eventId);
+    }
+
+    // --- Example: Hook delete button in event edit modal ---
+    var submitButton = createEventForm ? createEventForm.querySelector('button[type="submit"]') : null;
+    if (!document.getElementById('delete-event-btn') && submitButton) {
+        var deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.id = 'delete-event-btn';
+        deleteButton.textContent = 'Delete Event';
+        deleteButton.style.backgroundColor = '#dc3545';
+        deleteButton.style.color = '#fff';
+        deleteButton.style.border = 'none';
+        deleteButton.style.borderRadius = '4px';
+        deleteButton.style.padding = '6px 12px';
+        deleteButton.style.fontSize = '1em';
+        deleteButton.style.cursor = 'pointer';
+        deleteButton.style.marginLeft = '8px';
+        deleteButton.style.transition = 'background 0.2s';
+
+        deleteButton.addEventListener('click', function() {
+            if (editingEvent) {
+                handleDeleteEvent(editingEvent.id);
+                resetEventForm();
+            }
+        });
+
+        deleteButton.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#c82333';
+        });
+
+        deleteButton.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#dc3545';
+        });
+
+        submitButton.parentNode.appendChild(deleteButton);
+    }
+
+    // --- DISPLAY EVENT HELPER ---
+    function displayEvent(eventData) {
+        calendar.addEvent({
+            id: eventData.id,
+            title: eventData.title,
+            start: eventData.start,
+            end: eventData.end,
+            allDay: false,
+            backgroundColor: eventData.backgroundColor,
+            borderColor: eventData.borderColor,
+            textColor: eventData.textColor,
+            extendedProps: {
+                category: eventData.category,
+                email: eventData.email,
+                location: eventData.location,
+                description: eventData.description
+            }
+        });
+    }
+
+    // Local Storage Functions
+    function saveEventsToStorage() {
+        var events = calendar.getEvents().map(function(event) {
+            return {
+                id: event.id,
+                title: event.title,
+                start: event.start ? event.start.toISOString() : null,
+                end: event.end ? event.end.toISOString() : null,
+                allDay: event.allDay,
+                backgroundColor: event.backgroundColor,
+                borderColor: event.borderColor,
+                textColor: event.textColor,
+                extendedProps: event.extendedProps
+            };
+        });
+        localStorage.setItem('wise-ner-events', JSON.stringify(events));
+    }
+
+    function loadEventsFromStorage() {
+        var storedEvents = localStorage.getItem('wise-ner-events');
+        if (storedEvents) {
+            try {
+                var events = JSON.parse(storedEvents);
+                events.forEach(function(eventData) {
+                    calendar.addEvent({
+                        id: eventData.id,
+                        title: eventData.title,
+                        start: eventData.start ? new Date(eventData.start) : null,
+                        end: eventData.end ? new Date(eventData.end) : null,
+                        allDay: eventData.allDay,
+                        backgroundColor: eventData.backgroundColor,
+                        borderColor: eventData.borderColor,
+                        textColor: eventData.textColor,
+                        extendedProps: eventData.extendedProps
                     });
-                    
-                    createEventForm.reset();
-                    updateCategoryDropdown(); // Reset dropdown to default
+                });
+            } catch (e) {
+                console.error('Error loading events from storage:', e);
+            }
+        }
+    }
+
+    function createLegendItemFromFirestore(color, name, firestoreId) {
+        // Make sure legendList exists
+        if (!legendList) {
+            console.error('Legend list not found');
+            return;
+        }
+
+        var li = document.createElement('li');
+        li.dataset.firestoreId = firestoreId; // Store Firestore ID for updates/deletes
+
+        // Preset color options
+        var colors = [
+            "#ff0000ff", "#ff7300ff", "#ffae00ff", "#ffff00ff", "#48da74ff",
+            "#4c9967ff", "#4f6de4ff", "#a45ff7ff", "#e97bffff",
+            "#e2a6d0ff"
+        ];
+
+        // Color circle
+        var colorCircle = document.createElement('span');
+        colorCircle.className = 'legend-color-circle';
+        colorCircle.style.background = color;
+        colorCircle.style.marginRight = '8px';
+
+        // Color menu (hidden by default)
+        var colorMenu = document.createElement('div');
+        colorMenu.className = 'legend-color-menu';
+        colorMenu.style.display = 'none';
+
+        colors.forEach(function(colorOption) {
+            var colorOptionElement = document.createElement('span');
+            colorOptionElement.className = 'legend-color-option';
+            colorOptionElement.style.background = colorOption;
+            colorOptionElement.setAttribute('data-color', colorOption);
+            colorOptionElement.addEventListener('click', async function(e) {
+                colorCircle.style.background = colorOption;
+                colorMenu.style.display = 'none';
+                // Update in Firestore instead of localStorage
+                await updateLegendItem(firestoreId, {
+                    color: colorOption,
+                    name: name,
+                    updatedAt: Date.now()
+                });
+            });
+            colorMenu.appendChild(colorOptionElement);
+        });
+
+        // Show/hide color menu on circle click
+        colorCircle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            colorMenu.style.display = colorMenu.style.display === 'none' ? 'grid' : 'none';
+        });
+
+        // Hide color menu if clicking elsewhere
+        document.addEventListener('click', function() {
+            colorMenu.style.display = 'none';
+        });
+
+        // Category name display
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.className = 'legend-name-text';
+        nameSpan.style.flex = '1';
+        nameSpan.style.cursor = 'pointer';
+        nameSpan.style.padding = '2px 6px';
+        nameSpan.style.borderRadius = '4px';
+
+        // Create input for editing
+        var nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'legend-name-input';
+        nameInput.style.flex = '1';
+        nameInput.style.fontSize = '1em';
+        nameInput.style.border = '1px solid #ccc';
+        nameInput.style.borderRadius = '4px';
+        nameInput.style.padding = '2px 6px';
+
+        // Double-click to edit
+        nameSpan.addEventListener('dblclick', function() {
+            li.replaceChild(nameInput, nameSpan);
+            nameInput.value = nameSpan.textContent;
+            nameInput.focus();
+        });
+
+        // Save on Enter or blur
+        async function saveNameEdit() {
+            var value = nameInput.value.trim() || 'Unnamed';
+            nameSpan.textContent = value;
+            li.replaceChild(nameSpan, nameInput);
+            // Update in Firestore instead of localStorage
+            await updateLegendItem(firestoreId, {
+                color: color,
+                name: value,
+                updatedAt: Date.now()
+            });
+        }
+
+        nameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNameEdit();
+            }
+        });
+
+        nameInput.addEventListener('blur', saveNameEdit);
+
+        // Add delete functionality with right-click
+        li.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            if (confirm('Delete this legend item?')) {
+                // Delete from Firestore instead of just removing from UI
+                deleteLegendItem(firestoreId);
+            }
+        });
+
+        li.appendChild(colorCircle);
+        li.appendChild(colorMenu);
+        li.appendChild(nameSpan);
+        legendList.appendChild(li);
+    }
+
+    function createLegendItem(color, name) {
+        // This function now just calls the Firestore version
+        createLegendItemFromFirestore(color, name, null);
+    }
+
+    // Legend functionality - Define variables first
+    var legendList = document.getElementById('legend-list');
+    var addKeyBtn = document.getElementById('add-key-btn');
+
+    // Remove localStorage loading - now handled by Firebase
+    // loadLegendFromStorage();
+
+    // Global variable to track if we're editing an event
+    var editingEvent = null;
+
+    // Global variable to track current form step
+    var currentFormStep = 1;
+
+    // Function to open event edit modal
+    function openEventEditModal(event) {
+        editingEvent = event;
+        
+        // Reset to step 1
+        showFormStep1();
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Edit Event';
+        }
+        
+        // Add exit button if it doesn't exist
+        if (!document.getElementById('edit-exit-btn')) {
+            var exitButton = document.createElement('button');
+            exitButton.type = 'button';
+            exitButton.id = 'edit-exit-btn';
+            exitButton.innerHTML = '&times;';
+            exitButton.style.cssText = `
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                font-weight: bold;
+                color: #666;
+                cursor: pointer;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: background-color 0.2s, color 0.2s;
+                z-index: 10;
+            `;
+            
+            exitButton.addEventListener('click', function() {
+                resetEventForm();
+                // Return to appropriate view based on current calendar view
+                if (calendar.view.type === 'timeGridDay') {
+                    // Stay in day view but reset form
+                } else {
+                    // Go back to month view or previous view
+                    calendar.changeView('dayGridMonth');
+                }
+            });
+            
+            exitButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f0f0f0';
+                this.style.color = '#333';
+            });
+            
+            exitButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'transparent';
+                this.style.color = '#666';
+            });
+            
+            // Make the event container positioned relative for absolute positioning
+            eventCreateContainer.style.position = 'relative';
+            eventCreateContainer.appendChild(exitButton);
+        }
+        
+        // Populate form with event data
+        var titleInput = document.getElementById('event-title');
+        var startInput = document.getElementById('event-start');
+        var endInput = document.getElementById('event-end');
+        var categorySelect = document.getElementById('event-category');
+        var emailInput = document.getElementById('event-email');
+        var locationInput = document.getElementById('event-location');
+        var descriptionInput = document.getElementById('event-description');
+        
+        if (titleInput) titleInput.value = event.title || '';
+        
+        // Format times for display
+        if (event.start && startInput) {
+            var startTime = event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            startInput.value = startTime;
+        }
+        
+        if (event.end && endInput) {
+            var endTime = event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            endInput.value = endTime;
+        }
+        
+        // Set category if it exists
+        if (categorySelect && event.extendedProps && event.extendedProps.category) {
+            var categoryValue = event.extendedProps.category;
+            for (var i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].textContent === categoryValue) {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        
+        // Set email if it exists
+        if (emailInput && event.extendedProps && event.extendedProps.email) {
+            emailInput.value = event.extendedProps.email;
+        }
+        
+        // Set location and description if they exist
+        if (locationInput && event.extendedProps && event.extendedProps.location) {
+            locationInput.value = event.extendedProps.location;
+        }
+        
+        if (descriptionInput && event.extendedProps && event.extendedProps.description) {
+            descriptionInput.value = event.extendedProps.description;
+        }
+        
+        // Change submit button to update button and add delete button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Add delete button if it doesn't exist
+        if (!document.getElementById('delete-event-btn')) {
+            var deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.id = 'delete-event-btn';
+            deleteButton.textContent = 'Delete Event';
+            deleteButton.style.backgroundColor = '#dc3545';
+            deleteButton.style.color = '#fff';
+            deleteButton.style.border = 'none';
+            deleteButton.style.borderRadius = '4px';
+            deleteButton.style.padding = '6px 12px';
+            deleteButton.style.fontSize = '1em';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.style.marginLeft = '8px';
+            deleteButton.style.transition = 'background 0.2s';
+            
+            deleteButton.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    if (editingEvent) {
+                        // Delete from Firestore instead of just removing from calendar
+                        handleDeleteEvent(editingEvent.id);
+                        resetEventForm();
+                    }
+                }
+            });
+            
+            deleteButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#c82333';
+            });
+            
+            deleteButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#dc3545';
+            });
+            
+            submitButton.parentNode.appendChild(deleteButton);
+        }
+        
+        // Show the event create container
+        if (legendContainer) legendContainer.style.display = 'none';
+        if (eventCreateContainer) eventCreateContainer.style.display = '';
+    }
+
+    // Function to reset the event form to create mode
+    function resetEventForm() {
+        editingEvent = null;
+        currentFormStep = 1;
+        
+        // Reset to step 1
+        showFormStep1();
+        
+        // Reset form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            formTitle.textContent = 'Create Event';
+        }
+        
+        // Clear form
+        if (createEventForm) {
+            createEventForm.reset();
+        }
+        
+        // Reset submit button
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Remove delete button
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.remove();
+        }
+        
+        // Remove exit button
+        var exitButton = document.getElementById('edit-exit-btn');
+        if (exitButton) {
+            exitButton.remove();
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+        
+        // Reset dropdown
+        updateCategoryDropdown();
+    }
+
+    // Function to show step 2 of the form
+    function showFormStep2() {
+        currentFormStep = 2;
+        
+        // Hide step 1 elements and their labels
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el) {
+                // Hide the input/select element
+                el.style.display = 'none';
+                
+                // Find and hide the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'none';
+                    }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
+                }
+            }
+        });
+        
+        // Also hide any remaining labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:') {
+                label.style.display = 'none';
+            }
+        });
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent;
+            formTitle.textContent = currentTitle + ' (Further Details)';
+        }
+        
+        // Create step 2 elements if they don't exist
+        if (!document.getElementById('event-location')) {
+            createStep2Elements();
+        }
+        
+        // Show step 2 elements
+        showStep2Elements();
+        
+        // Update button text and functionality
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = editingEvent ? 'Update Event' : 'Create Event';
+        }
+        
+        // Add back button
+        if (!document.getElementById('back-btn')) {
+            var backButton = document.createElement('button');
+            backButton.type = 'button';
+            backButton.id = 'back-btn';
+            backButton.textContent = 'Back';
+            backButton.style.cssText = `
+                background: #6c757d;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-right: 8px;
+                transition: background 0.2s;
+            `;
+            
+            backButton.addEventListener('click', function() {
+                showFormStep1();
+            });
+            
+            backButton.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#5a6268';
+            });
+            
+            backButton.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '#6c757d';
+            });
+            
+            submitButton.parentNode.insertBefore(backButton, submitButton);
+        }
+        
+        // Hide delete button in step 2
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton) {
+            deleteButton.style.display = 'none';
+        }
+    }
+
+    // Function to show step 1 of the form
+    function showFormStep1() {
+        currentFormStep = 1;
+        
+        // Show step 1 elements and their labels
+        var step1Elements = [
+            document.getElementById('event-title'),
+            document.getElementById('event-start'),
+            document.getElementById('event-end'),
+            document.getElementById('event-category'),
+            document.getElementById('event-email')
+        ];
+        
+        step1Elements.forEach(function(el) {
+            if (el) {
+                // Show the input/select element
+                el.style.display = 'block';
+                
+                // Find and show the associated label
+                var labels = document.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.getAttribute('for') === el.id || 
+                        (label.nextElementSibling === el) ||
+                        (el.previousElementSibling === label)) {
+                        label.style.display = 'block';
+                    }
+                });
+                
+                // Also check previous sibling for labels
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
+            }
+        });
+        
+        // Show step 1 labels by text content (failsafe)
+        var allLabels = document.querySelectorAll('.event-create-container label');
+        allLabels.forEach(function(label) {
+            var labelText = label.textContent.trim();
+            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:' ||
+                labelText === 'Category:' || labelText === 'Contact Email:') {
+                label.style.display = 'block';
+            }
+        });
+        
+        // Hide step 2 elements
+        hideStep2Elements();
+        
+        // Update form title
+        var formTitle = eventCreateContainer.querySelector('h2');
+        if (formTitle) {
+            var currentTitle = formTitle.textContent.replace(' - Additional Details', '');
+            formTitle.textContent = currentTitle;
+        }
+        
+        // Update button text
+        var submitButton = createEventForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.textContent = 'Next';
+        }
+        
+        // Remove back button
+        var backButton = document.getElementById('back-btn');
+        if (backButton) {
+            backButton.remove();
+        }
+        
+        // Show delete button in step 1 if editing
+        var deleteButton = document.getElementById('delete-event-btn');
+        if (deleteButton && editingEvent) {
+            deleteButton.style.display = 'inline-block';
+        }
+    }
+
+    // Function to create step 2 form elements
+    function createStep2Elements() {
+        var form = createEventForm;
+        var submitButton = form.querySelector('button[type="submit"]');
+        
+        // Create location input
+        var locationLabel = document.createElement('label');
+        locationLabel.textContent = 'Location (optional):';
+        locationLabel.style.display = 'none';
+        
+        var locationInput = document.createElement('input');
+        locationInput.type = 'text';
+        locationInput.id = 'event-location';
+        locationInput.placeholder = 'Enter event location';
+        locationInput.style.display = 'none';
+        
+        // Create description textarea
+        var descriptionLabel = document.createElement('label');
+        descriptionLabel.textContent = 'Description (optional):';
+        descriptionLabel.style.display = 'none';
+        
+        var descriptionInput = document.createElement('textarea');
+        descriptionInput.id = 'event-description';
+        descriptionInput.placeholder = 'Enter event description';
+        descriptionInput.rows = 4;
+        descriptionInput.style.display = 'none';
+        
+        // Insert before submit button
+        form.insertBefore(locationLabel, submitButton);
+        form.insertBefore(locationInput, submitButton);
+        form.insertBefore(descriptionLabel, submitButton);
+        form.insertBefore(descriptionInput, submitButton);
+    }
+
+    // Function to show step 2 elements
+    function showStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'block';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Function to hide step 2 elements
+    function hideStep2Elements() {
+        var step2Elements = [
+            'event-location',
+            'event-description'
+        ];
+        
+        step2Elements.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'none';
+                if (el.previousElementSibling && el.previousElementSibling.tagName === 'LABEL') {
+                    el.previousElementSibling.style.display = 'none';
                 }
             }
         });
@@ -1551,11 +3377,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         let angleRad = angleDeg * Math.PI / 180;
                         let endX = centerX + minuteHandLength * Math.cos(angleRad);
                         let endY = centerY + minuteHandLength * Math.sin(angleRad);
+
+                        let minuteHand = document.createElement('div');
+                        minuteHand.className = 'clock-minute-hand';
+                        minuteHand.style.position = 'absolute';
+                        minuteHand.style.left = '0';
+                        minuteHand.style.top = '0';
+                        minuteHand.style.width = '220px';
+                        minuteHand.style.height = '220px';
+                        minuteHand.style.background = 'none';
+                        minuteHand.style.zIndex = '9';
+                        minuteHand.style.cursor = 'pointer';
+                        minuteHand.style.pointerEvents = 'auto';
                         minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
                             <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
                         </svg>`;
-                        minuteCircle.style.left = `${endX - 10}px`;
-                        minuteCircle.style.top = `${endY - 10}px`;
+                        picker.appendChild(minuteHand);
+
+                        let minuteCircle = document.createElement('div');
+                        minuteCircle.className = 'clock-hand-circle minute';
+                        minuteCircle.style.left = `${minuteEndX - 10}px`;
+                        minuteCircle.style.top = `${minuteEndY - 10}px`;
+                        picker.appendChild(minuteCircle);
+
                         picker.querySelectorAll('.clock-label').forEach(function(label) {
                             label.classList.toggle('selected', parseInt(label.textContent) === minute);
                         });
@@ -1861,89 +3705,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupClockModal('event-start', 'event-end');
 });
-        okayBtn.addEventListener('click', function() {
-            modalOverlay.classList.remove('active');
-        });
-        exitBtn.addEventListener('click', function() {
-            modalOverlay.classList.remove('active');
-        });
-
-        // AM/PM selection logic
-        function setAMPM(selected) {
-            ampm = selected;
-            setInputValue(); // This will update both the target input and button states
-        }
-        
-        // Add click effects and event listeners
-        if (amBtn && pmBtn) {
-            amBtn.addEventListener('click', function() { 
-                amBtn.style.transform = 'scale(0.95)';
-                amBtn.style.transition = 'transform 0.1s ease';
-                setTimeout(() => { 
-                    amBtn.style.transform = ''; 
-                    amBtn.style.transition = '';
-                }, 100);
-                setAMPM('AM'); 
-            });
-            pmBtn.addEventListener('click', function() { 
-                pmBtn.style.transform = 'scale(0.95)';
-                pmBtn.style.transition = 'transform 0.1s ease';
-                setTimeout(() => { 
-                    pmBtn.style.transform = ''; 
-                    pmBtn.style.transition = '';
-                }, 100);
-                setAMPM('PM'); 
-            });
-        }
-
-        // Hide modal when clicking outside content
-        modalOverlay.addEventListener('mousedown', function(e) {
-            if (e.target === modalOverlay) {
-                modalOverlay.classList.remove('active');
-            }
-        });
-    
-
-    // Add validation message functions
-    function showValidationMessage(message) {
-        clearValidationMessage();
-        const validationDiv = document.createElement('div');
-        validationDiv.id = 'minute-validation-message';
-        validationDiv.style.cssText = `
-            position: absolute;
-            background: #ff9800;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            top: 100%;
-            left: 0;
-            white-space: nowrap;
-            z-index: 1000;
-            margin-top: 2px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        `;
-        validationDiv.textContent = message;
-        
-        // Position relative to minute input
-        if (minuteInput && minuteInput.parentNode) {
-            minuteInput.parentNode.style.position = 'relative';
-            minuteInput.parentNode.appendChild(validationDiv);
-        }
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            clearValidationMessage();
-        }, 3000);
-    }
-    
-    function clearValidationMessage() {
-        const existing = document.getElementById('minute-validation-message');
-        if (existing) {
-            existing.remove();
-        }
-    }
-
-    setupClockModal('event-start', 'event-end');
 
 
