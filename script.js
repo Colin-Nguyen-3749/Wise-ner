@@ -169,6 +169,31 @@ document.addEventListener('DOMContentLoaded', function() {
         await db.collection("events").doc(eventId).delete();
     }
 
+    // --- FIREBASE LEGEND FUNCTIONS ---
+    async function addLegendItem(legendItem) {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        await db.collection("legendItems").add(legendItem);
+    }
+    
+    async function updateLegendItem(itemId, itemData) {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        await db.collection("legendItems").doc(itemId).update(itemData);
+    }
+    
+    async function deleteLegendItem(itemId) {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        await db.collection("legendItems").doc(itemId).delete();
+    }
+
     // --- REAL-TIME FIREBASE HOOKS ---
     function subscribeToEvents() {
         if (!db) {
@@ -210,6 +235,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function subscribeToLegendItems() {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        console.log("Setting up real-time legend listener...");
+        db.collection("legendItems").onSnapshot(snapshot => {
+            console.log("Received Firestore legend update, items count:", snapshot.size);
+            // Clear current legend items
+            if (legendList) {
+                legendList.innerHTML = '';
+            }
+            // Add all legend items from Firestore
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                console.log("Loading legend item:", data.name);
+                createLegendItemFromFirestore(data.color, data.name, doc.id);
+            });
+            updateCategoryDropdown();
+        }, error => {
+            console.error("Error in Firestore legend listener:", error);
+        });
+    }
+
     // --- DISPLAY EVENT HELPER ---
     function displayEvent(eventData) {
         // Prevent duplicates
@@ -236,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure db is initialized before calling subscribeToEvents
     if (db) {
         subscribeToEvents();
+        subscribeToLegendItems();
     } else {
         console.error("Firestore db is not initialized. Events will not sync.");
     }
@@ -373,41 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function saveLegendToStorage() {
-        var legendItems = [];
-        if (legendList) {
-            var items = legendList.querySelectorAll('li');
-            items.forEach(function(li) {
-                var colorCircle = li.querySelector('.legend-color-circle');
-                var nameText = li.querySelector('.legend-name-text');
-                
-                if (colorCircle && nameText) {
-                    legendItems.push({
-                        color: colorCircle.style.background,
-                        name: nameText.textContent
-                    });
-                }
-            });
-        }
-        localStorage.setItem('wise-ner-legend', JSON.stringify(legendItems));
-    }
-
-    function loadLegendFromStorage() {
-        var storedLegend = localStorage.getItem('wise-ner-legend');
-        if (storedLegend) {
-            try {
-                var legendItems = JSON.parse(storedLegend);
-                legendItems.forEach(function(item) {
-                    createLegendItem(item.color, item.name);
-                });
-                updateCategoryDropdown();
-            } catch (e) {
-                console.error('Error loading legend from storage:', e);
-            }
-        }
-    }
-
-    function createLegendItem(color, name) {
+    function createLegendItemFromFirestore(color, name, firestoreId) {
         // Make sure legendList exists
         if (!legendList) {
             console.error('Legend list not found');
@@ -415,6 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var li = document.createElement('li');
+        li.dataset.firestoreId = firestoreId; // Store Firestore ID for updates/deletes
 
         // Preset color options
         var colors = [
@@ -439,11 +456,15 @@ document.addEventListener('DOMContentLoaded', function() {
             colorOptionElement.className = 'legend-color-option';
             colorOptionElement.style.background = colorOption;
             colorOptionElement.setAttribute('data-color', colorOption);
-            colorOptionElement.addEventListener('click', function(e) {
+            colorOptionElement.addEventListener('click', async function(e) {
                 colorCircle.style.background = colorOption;
                 colorMenu.style.display = 'none';
-                saveLegendToStorage();
-                updateCategoryDropdown();
+                // Update in Firestore instead of localStorage
+                await updateLegendItem(firestoreId, {
+                    color: colorOption,
+                    name: name,
+                    updatedAt: Date.now()
+                });
             });
             colorMenu.appendChild(colorOptionElement);
         });
@@ -486,12 +507,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Save on Enter or blur
-        function saveNameEdit() {
+        async function saveNameEdit() {
             var value = nameInput.value.trim() || 'Unnamed';
             nameSpan.textContent = value;
             li.replaceChild(nameSpan, nameInput);
-            saveLegendToStorage();
-            updateCategoryDropdown();
+            // Update in Firestore instead of localStorage
+            await updateLegendItem(firestoreId, {
+                color: color,
+                name: value,
+                updatedAt: Date.now()
+            });
         }
 
         nameInput.addEventListener('keydown', function(e) {
@@ -507,9 +532,8 @@ document.addEventListener('DOMContentLoaded', function() {
         li.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             if (confirm('Delete this legend item?')) {
-                li.remove();
-                saveLegendToStorage();
-                updateCategoryDropdown();
+                // Delete from Firestore instead of just removing from UI
+                deleteLegendItem(firestoreId);
             }
         });
 
@@ -519,13 +543,17 @@ document.addEventListener('DOMContentLoaded', function() {
         legendList.appendChild(li);
     }
 
+    function createLegendItem(color, name) {
+        // This function now just calls the Firestore version
+        createLegendItemFromFirestore(color, name, null);
+    }
+
     // Legend functionality - Define variables first
     var legendList = document.getElementById('legend-list');
     var addKeyBtn = document.getElementById('add-key-btn');
 
-    // Load saved data on page load - AFTER variables are defined
-    // loadEventsFromStorage();
-    loadLegendFromStorage();
+    // Remove localStorage loading - now handled by Firebase
+    // loadLegendFromStorage();
 
     // Global variable to track if we're editing an event
     var editingEvent = null;
@@ -1280,10 +1308,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add legend button functionality
     if (addKeyBtn) {
-        addKeyBtn.addEventListener('click', function() {
-            console.log('eureka');
-            var li = document.createElement('li');
-
+        addKeyBtn.addEventListener('click', async function() {
+            console.log('Adding new legend item');
+            
             // Preset color options add strong + pastel colors
             var colors = [
                 "#ff0000ff", "#ff7300ff", "#ffae00ff", "#ffff00ff", "#48da74ff",
@@ -1291,124 +1318,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 "#e2a6d0ff"
             ];
 
-            // Color circle
-            var colorCircle = document.createElement('span');
-            colorCircle.className = 'legend-color-circle';
-            colorCircle.style.background = colors[0];
-            colorCircle.style.marginRight = '8px';
-
-            // Color menu (hidden by default)
-            var colorMenu = document.createElement('div');
-            colorMenu.className = 'legend-color-menu';
-            colorMenu.style.display = 'none';
-
-            colors.forEach(function(color) {
-                var colorOption = document.createElement('span');
-                colorOption.className = 'legend-color-option';
-                colorOption.style.background = color;
-                colorOption.setAttribute('data-color', color);
-                colorOption.addEventListener('click', function(e) {
-                    colorCircle.style.background = color;
-                    colorMenu.style.display = 'none';
-                    // Save to storage when color changes
-                    saveLegendToStorage();
-                    updateCategoryDropdown();
-                });
-                colorMenu.appendChild(colorOption);
+            // Create new legend item in Firestore
+            await addLegendItem({
+                color: colors[0],
+                name: 'New Category',
+                createdAt: Date.now()
             });
-
-            // Show/hide color menu on circle click
-            colorCircle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                colorMenu.style.display = colorMenu.style.display === 'none' ? 'grid' : 'none';
-            });
-
-            // Hide color menu if clicking elsewhere
-            document.addEventListener('click', function() {
-                colorMenu.style.display = 'none';
-            });
-
-            // Category name input
-            var nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.placeholder = 'Add a name';
-            nameInput.className = 'legend-name-input';
-            nameInput.style.flex = '1';
-            nameInput.style.fontSize = '1em';
-            nameInput.style.border = '1px solid #ccc';
-            nameInput.style.borderRadius = '4px';
-            nameInput.style.padding = '2px 6px';
-
-            // When user presses Enter, replace input with static text
-            nameInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    var value = nameInput.value.trim() || 'Unnamed';
-                    var nameSpan = document.createElement('span');
-                    nameSpan.textContent = value;
-                    nameSpan.className = 'legend-name-text';
-                    nameSpan.style.flex = '1';
-                    nameSpan.style.cursor = 'pointer';
-                    nameSpan.style.padding = '2px 6px';
-                    nameSpan.style.borderRadius = '4px';
-
-                    // Double-click to edit
-                    nameSpan.addEventListener('dblclick', function() {
-                        li.replaceChild(nameInput, nameSpan);
-                        nameInput.value = nameSpan.textContent;
-                        nameInput.focus();
-                    });
-
-                    li.replaceChild(nameSpan, nameInput);
-                    // Save to storage when legend item is added
-                    saveLegendToStorage();
-                    updateCategoryDropdown();
-                }
-            });
-
-            // Optional: blur to save as well
-            nameInput.addEventListener('blur', function() {
-                if (nameInput.parentNode === li) {
-                    var value = nameInput.value.trim() || 'Unnamed';
-                    var nameSpan = document.createElement('span');
-                    nameSpan.textContent = value;
-                    nameSpan.className = 'legend-name-text';
-                    nameSpan.style.flex = '1';
-                    nameSpan.style.cursor = 'pointer';
-                    nameSpan.style.padding = '2px 6px';
-                    nameSpan.style.borderRadius = '4px';
-
-                    nameSpan.addEventListener('dblclick', function() {
-                        li.replaceChild(nameInput, nameSpan);
-                        nameInput.value = nameSpan.textContent;
-                        nameInput.focus();
-                    });
-
-                    li.replaceChild(nameSpan, nameInput);
-                    // Save to storage when legend item is added
-                    saveLegendToStorage();
-                    updateCategoryDropdown();
-                }
-            });
-
-            // Add delete functionality with right-click or delete key
-            li.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                if (confirm('Delete this legend item?')) {
-                    li.remove();
-                    // Save to storage when legend item is removed
-                    saveLegendToStorage();
-                    updateCategoryDropdown();
-                }
-            });
-
-            li.appendChild(colorCircle);
-            li.appendChild(colorMenu);
-            li.appendChild(nameInput);
-            if (legendList) {
-                legendList.appendChild(li);
-            }
-            nameInput.focus();
         });
     }
 
@@ -1946,4 +1861,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupClockModal('event-start', 'event-end');
 });
+        okayBtn.addEventListener('click', function() {
+            modalOverlay.classList.remove('active');
+        });
+        exitBtn.addEventListener('click', function() {
+            modalOverlay.classList.remove('active');
+        });
+
+        // AM/PM selection logic
+        function setAMPM(selected) {
+            ampm = selected;
+            setInputValue(); // This will update both the target input and button states
+        }
+        
+        // Add click effects and event listeners
+        if (amBtn && pmBtn) {
+            amBtn.addEventListener('click', function() { 
+                amBtn.style.transform = 'scale(0.95)';
+                amBtn.style.transition = 'transform 0.1s ease';
+                setTimeout(() => { 
+                    amBtn.style.transform = ''; 
+                    amBtn.style.transition = '';
+                }, 100);
+                setAMPM('AM'); 
+            });
+            pmBtn.addEventListener('click', function() { 
+                pmBtn.style.transform = 'scale(0.95)';
+                pmBtn.style.transition = 'transform 0.1s ease';
+                setTimeout(() => { 
+                    pmBtn.style.transform = ''; 
+                    pmBtn.style.transition = '';
+                }, 100);
+                setAMPM('PM'); 
+            });
+        }
+
+        // Hide modal when clicking outside content
+        modalOverlay.addEventListener('mousedown', function(e) {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        });
+    
+
+    // Add validation message functions
+    function showValidationMessage(message) {
+        clearValidationMessage();
+        const validationDiv = document.createElement('div');
+        validationDiv.id = 'minute-validation-message';
+        validationDiv.style.cssText = `
+            position: absolute;
+            background: #ff9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            top: 100%;
+            left: 0;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-top: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        `;
+        validationDiv.textContent = message;
+        
+        // Position relative to minute input
+        if (minuteInput && minuteInput.parentNode) {
+            minuteInput.parentNode.style.position = 'relative';
+            minuteInput.parentNode.appendChild(validationDiv);
+        }
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            clearValidationMessage();
+        }, 3000);
+    }
+    
+    function clearValidationMessage() {
+        const existing = document.getElementById('minute-validation-message');
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    setupClockModal('event-start', 'event-end');
+
 
