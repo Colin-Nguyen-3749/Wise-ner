@@ -1,15 +1,32 @@
 // --- FIREBASE INITIALIZATION ---
 // Place this at the very top of your script, before any db usage.
 var db = null;
-if (typeof firebase !== "undefined" && typeof firebaseConfig !== "undefined") {
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    // Ensure db is assigned before any usage
-    db = firebase.firestore();
-}
 
 document.addEventListener('DOMContentLoaded', function() {
+    // --- FIREBASE INITIALIZATION - MAIN INITIALIZATION ---
+    // Remove duplicate initialization and ensure db is properly set
+    if (typeof firebase !== "undefined") {
+        if (!firebase.apps.length) {
+            // Initialize Firebase if not already initialized
+            const firebaseConfig = {
+                apiKey: "AIzaSyAc7GwpxMV1ydIqkzo7DydzpLbXM-KRv6s",
+                authDomain: "wise-ner2.firebaseapp.com",
+                projectId: "wise-ner2",
+                storageBucket: "wise-ner2.firebasestorage.app",
+                messagingSenderId: "935296650537",
+                appId: "1:935296650537:web:8478e21a16769cbc5f3b38"
+            };
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Ensure db is assigned after Firebase is initialized
+        db = firebase.firestore();
+        console.log("Firebase initialized successfully", db);
+    } else {
+        console.error("Firebase SDK not loaded. Make sure Firebase scripts are included in your HTML.");
+        return;
+    }
+
     var calendarEl = document.getElementById('calendar');
     var legendContainer = document.getElementById('legend-container');
     var eventCreateContainer = document.getElementById('event-create-container');
@@ -125,35 +142,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
-    // --- FIREBASE INITIALIZATION ---
-    // Add this at the top of your script, before any db usage.
-    // Make sure you have your firebaseConfig object defined somewhere above this.
-    if (typeof firebase !== "undefined" && typeof firebaseConfig !== "undefined") {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        var db = firebase.firestore();
-    }
-
-    // --- FIREBASE EVENT FUNCTIONS (using Firestore v9+ modular syntax) ---
-    // You must have Firestore imported and initialized as 'db' in your HTML or elsewhere.
-
+    // --- FIREBASE EVENT FUNCTIONS ---
     async function addEvent(event) {
-        // Returns the Firestore document ID
-        const docRef = await db.collection("events").add(event);
-        event.id = docRef.id;
-        return event;
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        // Add event to Firestore; UI will update via onSnapshot
+        await db.collection("events").add(event);
     }
-    async function getAllEvents() {
-        const snapshot = await db.collection("events").get();
-        const events = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            events.push({ id: doc.id, ...data });
-        });
-        return events;
+    
+    async function updateEvent(eventId, eventData) {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
+        // Update event in Firestore
+        await db.collection("events").doc(eventId).update(eventData);
     }
+    
     async function deleteEvent(eventId) {
+        if (!db) {
+            console.error("Firestore db is not initialized.");
+            return;
+        }
         await db.collection("events").doc(eventId).delete();
     }
 
@@ -163,11 +175,38 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error("Firestore db is not initialized.");
             return;
         }
+        console.log("Setting up real-time event listener...");
         db.collection("events").onSnapshot(snapshot => {
+            console.log("Received Firestore update, events count:", snapshot.size);
+            // Remove all current events
             calendar.getEvents().forEach(ev => ev.remove());
+            // Add all events from Firestore
             snapshot.forEach(doc => {
-                displayEvent({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                console.log("Loading event:", data.title);
+                // Convert ISO strings back to Date objects if they exist
+                const startDate = data.start ? new Date(data.start) : null;
+                const endDate = data.end ? new Date(data.end) : null;
+                
+                calendar.addEvent({
+                    id: doc.id,
+                    title: data.title,
+                    start: startDate,
+                    end: endDate,
+                    allDay: false,
+                    backgroundColor: data.backgroundColor || '#3788d8',
+                    borderColor: data.borderColor || data.backgroundColor || '#3788d8',
+                    textColor: data.textColor || '#ffffff',
+                    extendedProps: {
+                        category: data.category || '',
+                        email: data.email || '',
+                        location: data.location || '',
+                        description: data.description || ''
+                    }
+                });
             });
+        }, error => {
+            console.error("Error in Firestore listener:", error);
         });
     }
 
@@ -233,10 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- DELETE EVENT HANDLER (UI + FIREBASE) ---
     function handleDeleteEvent(eventId) {
-        // Remove from calendar UI (will also be removed by onSnapshot, but for instant feedback)
-        const event = calendar.getEventById(eventId);
-        if (event) event.remove();
-        // Remove from Firestore
+        // Only remove from Firestore; UI will update via onSnapshot
         deleteEvent(eventId);
     }
 
@@ -488,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var addKeyBtn = document.getElementById('add-key-btn');
 
     // Load saved data on page load - AFTER variables are defined
-    loadEventsFromStorage();
+    // loadEventsFromStorage();
     loadLegendFromStorage();
 
     // Global variable to track if we're editing an event
@@ -634,9 +670,8 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteButton.addEventListener('click', function() {
                 if (confirm('Are you sure you want to delete this event?')) {
                     if (editingEvent) {
-                        editingEvent.remove();
-                        // Save to storage after deleting event
-                        saveEventsToStorage();
+                        // Delete from Firestore instead of just removing from calendar
+                        handleDeleteEvent(editingEvent.id);
                         resetEventForm();
                     }
                 }
@@ -956,7 +991,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle event creation form submission
     if (createEventForm) {
-        createEventForm.addEventListener('submit', function(e) {
+        createEventForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // If we're on step 1, validate and go to step 2
@@ -1016,29 +1051,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Determine if we're editing or creating
                 if (editingEvent) {
-                    // Update existing event
-                    editingEvent.setProp('title', title);
-                    
-                    // Update times if provided
-                    if (startTime) {
-                        var startParsed = parseTime(startTime);
-                        if (startParsed) {
-                            var startDate = new Date(editingEvent.start);
-                            startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
-                            editingEvent.setStart(startDate);
-                        }
-                    }
-                    
-                    if (endTime) {
-                        var endParsed = parseTime(endTime);
-                        if (endParsed) {
-                            var endDate = new Date(editingEvent.start);
-                            endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
-                            editingEvent.setEnd(endDate);
-                        }
-                    }
-                    
-                    // Update category color
+                    // Get selected category color
                     var eventColor = '#3788d8'; // default blue
                     var categoryName = 'Default';
                     if (categorySelect && categorySelect.value) {
@@ -1049,37 +1062,57 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     
-                    editingEvent.setProp('backgroundColor', eventColor);
-                    editingEvent.setProp('borderColor', eventColor);
+                    // Parse times
+                    var startDate = new Date(editingEvent.start);
+                    var endDate = new Date(editingEvent.start);
                     
-                    // Update extended properties
+                    if (startTime) {
+                        var startParsed = parseTime(startTime);
+                        if (startParsed) {
+                            startDate.setHours(startParsed.hours, startParsed.minutes, 0, 0);
+                        }
+                    }
+                    
+                    if (endTime) {
+                        var endParsed = parseTime(endTime);
+                        if (endParsed) {
+                            endDate.setHours(endParsed.hours, endParsed.minutes, 0, 0);
+                        }
+                    }
+                    
                     var contactEmail = emailInput ? emailInput.value.trim() : '';
-                    editingEvent.setExtendedProp('category', categoryName);
-                    editingEvent.setExtendedProp('email', contactEmail);
-                    editingEvent.setExtendedProp('location', location);
-                    editingEvent.setExtendedProp('description', description);
                     
-                    // Save to storage after updating event
-                    saveEventsToStorage();
+                    // Update event in Firestore
+                    await updateEvent(editingEvent.id, {
+                        title: title,
+                        start: startDate.toISOString(),
+                        end: endDate.toISOString(),
+                        backgroundColor: eventColor,
+                        borderColor: eventColor,
+                        textColor: '#ffffff',
+                        category: categoryName,
+                        email: contactEmail,
+                        location: location,
+                        description: description,
+                        updatedAt: Date.now()
+                    });
                     
                     resetEventForm();
                 } else {
                     // Create new event
                     var date = calendar.view.currentStart; // current day in view
-                    var start = date;
-                    var end = date;
+                    var start = new Date(date);
+                    var end = new Date(date);
                     
                     if (startTime) {
                         var startParsed = parseTime(startTime);
                         if (startParsed) {
-                            start = new Date(date);
                             start.setHours(startParsed.hours, startParsed.minutes, 0, 0);
                         }
                     }
                     if (endTime) {
                         var endParsed = parseTime(endTime);
                         if (endParsed) {
-                            end = new Date(date);
                             end.setHours(endParsed.hours, endParsed.minutes, 0, 0);
                         }
                     }
@@ -1098,24 +1131,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Get email if provided
                     var contactEmail = emailInput ? emailInput.value.trim() : '';
                     
-                    calendar.addEvent({
+                    // Add event to Firestore (not calendar directly - onSnapshot will handle that)
+                    await addEvent({
                         title: title,
-                        start: start,
-                        end: end,
-                        allDay: false,
+                        start: start.toISOString(),
+                        end: end.toISOString(),
                         backgroundColor: eventColor,
                         borderColor: eventColor,
                         textColor: '#ffffff',
-                        extendedProps: {
-                            category: categoryName,
-                            email: contactEmail,
-                            location: location,
-                            description: description
-                        }
+                        category: categoryName,
+                        email: contactEmail,
+                        location: location,
+                        description: description,
+                        createdAt: Date.now()
                     });
-                    
-                    // Save to storage after creating event
-                    saveEventsToStorage();
                     
                     createEventForm.reset();
                     updateCategoryDropdown(); // Reset dropdown to default
