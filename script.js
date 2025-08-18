@@ -308,10 +308,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (createEventForm) {
         createEventForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            console.log("Form submitted, current step:", currentFormStep);
-            
-            // If we're on step 1, validate and go to step 2
+
+            // --- FIX: Only submit to Firestore on step 2, not on step 1 ---
             if (currentFormStep === 1) {
                 var title = document.getElementById('event-title').value.trim();
                 var startTime = document.getElementById('event-start').value.trim();
@@ -351,9 +349,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 showFormStep2();
-                return;
+                // Do NOT reset form or submit to Firestore here!
+                return; // <-- Prevents flashing past step 2
             }
-            
+
             // If we're on step 2, create/update the event
             var title = document.getElementById('event-title').value.trim();
             var startTime = document.getElementById('event-start').value;
@@ -1575,8 +1574,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         let angleRad = angleDeg * Math.PI / 180;
                         let endX = centerX + minuteHandLength * Math.cos(angleRad);
                         let endY = centerY + minuteHandLength * Math.sin(angleRad);
-                        
-                        // Update the existing minute hand instead of creating a new one
+                        // --- FIX: Update existing minute hand and circle, do not create new elements ---
                         minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
                             <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
                         </svg>`;
@@ -1887,24 +1885,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupClockModal('event-start', 'event-end');
 });
-                    el.previousElementSibling.style.display = 'none';
         
-        
-        // Also hide any remaining labels by text content (failsafe)
-        var allLabels = document.querySelectorAll('.event-create-container label');
-        allLabels.forEach(function(label) {
-            var labelText = label.textContent.trim();
-            if (labelText === 'Title:' || labelText === 'Start Time:' || labelText === 'End Time:') {
-                label.style.display = 'none';
-            }
-        });
-        
-        // Update form title
-        var formTitle = eventCreateContainer.querySelector('h2');
-        if (formTitle) {
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            clearValidationMessage();
+        }, 3000);
+    
+    
+    function clearValidationMessage() {
+        const existing = document.getElementById('minute-validation-message');
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    setupClockModal('event-start', 'event-end');
+
             var currentTitle = formTitle.textContent;
             formTitle.textContent = currentTitle + ' (Further Details)';
-        }
+        
         
         // Create step 2 elements if they don't exist
         if (!document.getElementById('event-location')) {
