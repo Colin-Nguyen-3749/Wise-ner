@@ -714,4 +714,107 @@ h1 {
     justify-content: center;
 }
 
+/* --- SHEET MUSIC CALENDAR STYLES --- */
+
+/* Each week row as a musical staff with 5 horizontal lines */
+.fc-daygrid-body tr {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 10px,
+        #222 10px,
+        #222 11px,
+        transparent 11px,
+        transparent 20px
+    );
+    background-position: 0 12px; /* Start a bit lower to align with day cells */
+    position: relative;
+}
+
+/* Add barlines between days */
+.fc-daygrid-day {
+    border-right: 2px solid #222 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    background: transparent !important;
+}
+
+/* Add thicker barline at the start of each week */
+.fc-day-sun, .fc-daygrid-day:first-child {
+    border-left: 3px solid #222 !important;
+}
+
+/* Add a double barline at the end of the month */
+.fc-daygrid-day.fc-day-other:last-child {
+    border-right: 5px double #222 !important;
+}
+
+/* Style for the day numbers to look like measure numbers */
+.fc-daygrid-day-number {
+    font-size: 0.9em !important;
+    font-weight: normal !important;
+    color: #444 !important;
+    font-style: italic;
+}
+
+/* Make day cells taller for better note visualization */
+.fc-daygrid-day-frame {
+    height: 110px !important;
+    min-height: 110px !important;
+}
+
+/* Add treble clef to the beginning of each week */
+.fc-day-sun .fc-daygrid-day-top::before {
+    content: '';
+    display: block;
+    position: absolute;
+    left: -6px;
+    top: 5px;
+    width: 30px;
+    height: 90px;
+    background-image: url("img/treble2.png");
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    z-index: 5;
+}
+
+/* Override dot events in month view for musical notes */
+.fc-daygrid-event {
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    background: none !important;
+    border: none !important;
+    margin: 2px !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    display: inline-block !important;
+    position: relative !important;
+    font-size: 0 !important;
+    box-shadow: none !important;
+}
+
+/* More events link styling to match musical theme */
+.fc-daygrid-more-link {
+    font-style: italic !important;
+    background: transparent !important;
+    color: #222 !important;
+    font-weight: 500 !important;
+}
+
+/* Style the event content container */
+.fc-event-content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Style the musical note */
+.music-note {
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
 
