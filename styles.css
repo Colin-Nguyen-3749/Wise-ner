@@ -46,9 +46,9 @@ h1 {
 }
 
 .calendar-container {
-    width: 800px;
-    min-width: 800px;
-    max-width: 800px;
+    width: 900px;
+    min-width: 900px;
+    max-width: 900px;
     background: #fff;
     padding: 1rem;
     border-radius: 8px;
@@ -61,7 +61,7 @@ h1 {
 }
 
 #calendar {
-    width: 800px;
+    width: 900px;
     height: 600px;
     margin: 0 auto;
 }
@@ -109,14 +109,14 @@ h1 {
 /* Make sure day cells are positioned for absolute button placement */
 .fc-daygrid-day-frame {
     position: relative;
-    height: 100px !important;
-    min-height: 100px !important;
-    max-height: 100px !important;
+    height: 90px !important;
+    min-height: 90px !important;
+    max-height: 90px !important;
     overflow: hidden;
 }
 
 .fc-daygrid-day-events {
-    max-height: 80px !important;
+    max-height: 70px !important;
     overflow: hidden !important;
     padding: 2px !important;
     display: flex !important;
@@ -127,9 +127,9 @@ h1 {
 
 /* Ensure day cells maintain consistent height */
 .fc-daygrid-day {
-    height: 100px !important;
-    min-height: 100px !important;
-    max-height: 100px !important;
+    height: 90px !important;
+    min-height: 90px !important;
+    max-height: 90px !important;
     overflow: hidden;
 }
 
@@ -266,11 +266,11 @@ h1 {
 
 .legend-container,
 .event-create-container {
-    min-width: 280px;
-    max-width: 320px;
+    min-width: 250px;
+    max-width: 250px;
     background: #e7e7e7;
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1.2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     font-size: 1em;
     margin-left: 1rem;    /* add space to left */
@@ -708,70 +708,90 @@ h1 {
     transition: background 0.2s, color 0.2s;
     user-select: none;
     pointer-events: auto;
-    /* Center text in the box */
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 /* --- SHEET MUSIC CALENDAR STYLES --- */
 
-/* Each week row as a musical staff with 5 horizontal lines */
+/* Style the table to allow proper spacing between staffs (weeks) */
+.fc-scrollgrid-sync-table {
+    border-collapse: separate;
+    border-spacing: 0 40px; /* Increased spacing between weeks */
+}
+
+/* Calculate staff height and spacing */
+:root {
+    --staff-top: 15px; /* Space above the staff for day numbers */
+    --staff-height: 65px; /* Height of the 5-line staff */
+    --line-spacing: 13px; /* Spacing between staff lines */
+}
+
+/* Each week row as a musical staff with exactly 5 horizontal lines */
 .fc-daygrid-body tr {
     background-image: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 10px,
-        #222 10px,
-        #222 11px,
-        transparent 11px,
-        transparent 20px
+        transparent 8px,
+        #222 8px,
+        #222 9px,
+        transparent 9px,
+        transparent var(--line-spacing)
     );
-    background-position: 0 12px; /* Start a bit lower to align with day cells */
+    background-position: 0 var(--staff-top); /* Start below day numbers */
+    background-size: 100% var(--staff-height); /* Limit staff lines to the exact height */
     position: relative;
+    margin-top: 20px;
+    padding-top: 5px;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-/* Add barlines between days */
-.fc-daygrid-day {
-    border-right: 2px solid #222 !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    background: transparent !important;
-}
-
-/* Add thicker barline at the start of each week */
-.fc-day-sun, .fc-daygrid-day:first-child {
-    border-left: 3px solid #222 !important;
-}
-
-/* Add a double barline at the end of the month */
-.fc-daygrid-day.fc-day-other:last-child {
-    border-right: 5px double #222 !important;
-}
-
-/* Style for the day numbers to look like measure numbers */
+/* Position day numbers above the staff */
 .fc-daygrid-day-number {
+    position: absolute !important;
+    top: 4px !important; /* Position above the staff */
+    right: 8px !important; /* Right align */
     font-size: 0.9em !important;
     font-weight: normal !important;
     color: #444 !important;
     font-style: italic;
+    z-index: 2;
+    padding: 2px 4px !important;
 }
 
-/* Make day cells taller for better note visualization */
-.fc-daygrid-day-frame {
-    height: 110px !important;
-    min-height: 110px !important;
+/* Add barlines between days that reach from top to bottom of staff */
+.fc-daygrid-day {
+    border-right: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    background: transparent !important;
+    position: relative;
 }
+
+/* Create barlines that exactly span the height of the staff */
+.fc-daygrid-day::after {
+    content: '';
+    display: block !important;
+    position: absolute;
+    top: var(--staff-top); /* Align perfectly with staff top */
+    right: 0;
+    width: 2px;
+    height: var(--staff-height); /* Exact height of the staff */
+    background: #222;
+    z-index: 1;
+}
+
+
+
 
 /* Add treble clef to the beginning of each week */
 .fc-day-sun .fc-daygrid-day-top::before {
     content: '';
     display: block;
     position: absolute;
-    left: -6px;
-    top: 5px;
-    width: 30px;
-    height: 90px;
+    left: -5px;
+    top: var(--staff-top); /* Align perfectly with staff top */
+    width: 34px;
+    height: var(--staff-height); /* Exactly match staff height */
     background-image: url("img/treble2.png");
     background-repeat: no-repeat;
     background-size: contain;
@@ -779,42 +799,42 @@ h1 {
     z-index: 5;
 }
 
-/* Override dot events in month view for musical notes */
-.fc-daygrid-event {
-    width: auto !important;
-    height: auto !important;
-    border-radius: 0 !important;
-    background: none !important;
-    border: none !important;
-    margin: 2px !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-    min-width: 0 !important;
-    display: inline-block !important;
-    position: relative !important;
-    font-size: 0 !important;
-    box-shadow: none !important;
+/* Make sure the hover effect doesn't interfere with barlines */
+.fc-daygrid-day.linger-hover::after {
+    background: rgba(40,40,40,0.92);
+    height: 100%;
+    top: 0;
+    z-index: 20;
 }
 
-/* More events link styling to match musical theme */
-.fc-daygrid-more-link {
-    font-style: italic !important;
-    background: transparent !important;
-    color: #222 !important;
-    font-weight: 500 !important;
+/* Adjust day cell frames to accommodate the staff layout */
+.fc-daygrid-day-frame {
+    height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    min-height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    max-height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    overflow: hidden;
+    padding-top: var(--staff-top) !important; /* Move content below day numbers */
 }
 
-/* Style the event content container */
-.fc-event-content {
+/* Adjust day cells to match frame height */
+.fc-daygrid-day {
+    height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    min-height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    max-height: calc(var(--staff-top) + var(--staff-height) + 10px) !important;
+    overflow: hidden;
+}
+
+/* Position events within the staff lines */
+.fc-daygrid-day-events {
+    max-height: var(--staff-height) !important;
+    overflow: hidden !important;
+    padding: 2px !important;
     display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* Style the musical note */
-.music-note {
-    display: inline-block !important;
-    vertical-align: middle !important;
+    flex-wrap: wrap !important;
+    align-content: flex-start !important;
+    gap: 1px !important;
+    position: relative;
+    top: 0;
 }
 
 
