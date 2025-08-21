@@ -716,37 +716,46 @@ h1 {
     border-spacing: 0;
 }
 
-/* Week row styling with 5 horizontal lines grouped as a staff */
+/* Week row styling with 5 horizontal lines and treble clef */
 .fc-daygrid-body tr {
     position: relative;
     height: 110px !important;
     margin: 12px 0;
-    background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 35px,  /* Space above staff */
-        #969696 35px,     /* First line */
-        #969696 36px,
-        transparent 36px,
-        transparent 43px,  /* Space between lines */
-        #969696 43px,     /* Second line */
-        #969696 44px,
-        transparent 44px,
-        transparent 51px,  /* Space between lines */
-        #969696 51px,     /* Third line */
-        #969696 52px,
-        transparent 52px,
-        transparent 59px,  /* Space between lines */
-        #969696 59px,     /* Fourth line */
-        #969696 60px,
-        transparent 60px,
-        transparent 67px,  /* Space between lines */
-        #969696 67px,     /* Fifth line */
-        #969696 68px,
-        transparent 68px,
-        transparent 110px  /* Fill rest with transparent */
-    ) !important;
-    background-size: 100% 110px !important;
+    background: 
+        /* Treble clef background */
+        url('../img/treble2.png') no-repeat 0px 24px / 35px auto,
+        /* Staff lines */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 35px,  /* Space above staff */
+            #969696 35px,     /* First line */
+            #969696 36px,
+            transparent 36px,
+            transparent 43px,  /* Space between lines */
+            #969696 43px,     /* Second line */
+            #969696 44px,
+            transparent 44px,
+            transparent 51px,  /* Space between lines */
+            #969696 51px,     /* Third line */
+            #969696 52px,
+            transparent 52px,
+            transparent 59px,  /* Space between lines */
+            #969696 59px,     /* Fourth line */
+            #969696 60px,
+            transparent 60px,
+            transparent 67px,  /* Space between lines */
+            #969696 67px,     /* Fifth line */
+            #969696 68px,
+            transparent 68px,
+            transparent 110px  /* Fill rest with transparent */
+        ) !important;
+    background-size: 35px auto, 100% 110px !important;
+}
+
+/* Adjust first day of week to make room for treble clef */
+.fc-day-sun {
+    padding-left: 40px !important;
 }
 
 /* Add barlines between days */
