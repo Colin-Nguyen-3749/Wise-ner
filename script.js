@@ -1,4 +1,4 @@
-// --- FIREBASE INITIALIZATION ----
+// --- FIREBASE INITIALIZATION ---
 // Place this at the very top of your script, before any db usage.
 var db = null;
 
