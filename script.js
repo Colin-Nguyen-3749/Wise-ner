@@ -1603,32 +1603,47 @@ document.addEventListener('DOMContentLoaded', function() {
                         m = m < 0 ? m + 60 : m;
                         minute = m;
                         setInputValue();
+                        
+                        // Remove all existing minute hands and circles to prevent trails
+                        picker.querySelectorAll('.clock-minute-hand').forEach(el => el.remove());
+                        picker.querySelectorAll('.clock-hand-circle.minute').forEach(el => el.remove());
+                        
                         let angleDeg = minute * 6 - 90;
                         let angleRad = angleDeg * Math.PI / 180;
                         let endX = centerX + minuteHandLength * Math.cos(angleRad);
                         let endY = centerY + minuteHandLength * Math.sin(angleRad);
-
-                        let minuteHand = document.createElement('div');
-                        minuteHand.className = 'clock-minute-hand';
-                        minuteHand.style.position = 'absolute';
-                        minuteHand.style.left = '0';
-                        minuteHand.style.top = '0';
-                        minuteHand.style.width = '220px';
-                        minuteHand.style.height = '220px';
-                        minuteHand.style.background = 'none';
-                        minuteHand.style.zIndex = '9';
-                        minuteHand.style.cursor = 'pointer';
-                        minuteHand.style.pointerEvents = 'auto';
-                        minuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
+                        
+                        let newMinuteHand = document.createElement('div');
+                        newMinuteHand.className = 'clock-minute-hand';
+                        newMinuteHand.style.position = 'absolute';
+                        newMinuteHand.style.left = '0';
+                        newMinuteHand.style.top = '0';
+                        newMinuteHand.style.width = '220px';
+                        newMinuteHand.style.height = '220px';
+                        newMinuteHand.style.background = 'none';
+                        newMinuteHand.style.zIndex = '20';
+                        newMinuteHand.style.cursor = 'pointer';
+                        newMinuteHand.style.pointerEvents = 'auto';
+                        newMinuteHand.innerHTML = `<svg width="220" height="220" style="pointer-events:none;">
                             <line x1="${centerX}" y1="${centerY}" x2="${endX}" y2="${endY}" stroke="#4caf50" stroke-width="4" stroke-linecap="round"/>
                         </svg>`;
-                        picker.appendChild(minuteHand);
+                        picker.appendChild(newMinuteHand);
 
-                        let minuteCircle = document.createElement('div');
-                        minuteCircle.className = 'clock-hand-circle minute';
-                        minuteCircle.style.left = `${minuteEndX - 10}px`;
-                        minuteCircle.style.top = `${minuteEndY - 10}px`;
-                        picker.appendChild(minuteCircle);
+                        let newMinuteCircle = document.createElement('div');
+                        newMinuteCircle.className = 'clock-hand-circle minute';
+                        newMinuteCircle.style.left = `${endX - 10}px`;
+                        newMinuteCircle.style.top = `${endY - 10}px`;
+                        newMinuteCircle.style.position = 'absolute';
+                        newMinuteCircle.style.zIndex = '21';
+                        picker.appendChild(newMinuteCircle);
+                        
+                        // Re-attach drag event listener to the new hand
+                        newMinuteHand.addEventListener('mousedown', function(e) {
+                            draggingMinute = true;
+                            e.preventDefault();
+                            document.addEventListener('mousemove', onMinuteDrag);
+                            document.addEventListener('mouseup', onMinuteUp);
+                        });
 
                         picker.querySelectorAll('.clock-label').forEach(function(label) {
                             label.classList.toggle('selected', parseInt(label.textContent) === minute);
@@ -1935,21 +1950,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupClockModal('event-start', 'event-end');
 });
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            clearValidationMessage();
-        }, 3000);
-    
-    
-    function clearValidationMessage() {
-        const existing = document.getElementById('minute-validation-message');
-        if (existing) {
-            existing.remove();
-        }
-    }
-
-    setupClockModal('event-start', 'event-end');
 
             var currentTitle = formTitle.textContent;
             formTitle.textContent = currentTitle + ' (Further Details)';
