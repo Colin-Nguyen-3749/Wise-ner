@@ -53,55 +53,86 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         eventDidMount: function(info) {
-            // Replace event content with a musical note in month view
+            // For month view, render musical notes in sheet music style
             if (calendar.view.type === 'dayGridMonth') {
+                // Get the day cell to count events
+                const dayCell = info.el.closest('.fc-daygrid-day');
+                const dateStr = dayCell.getAttribute('data-date');
+                
+                // Count all events for this day
+                const allEventsForDay = calendar.getEvents().filter(event => {
+                    if (!event.start) return false;
+                    const eventDateStr = event.start.toISOString().split('T')[0];
+                    return eventDateStr === dateStr;
+                });
+                
+                const eventCount = allEventsForDay.length;
+
+                // Clear existing content
                 info.el.innerHTML = '';
-                
-                // Get color for note
-                const noteColor = info.event.backgroundColor || '#3788d8';
-                
-                // Random note types for visual variety (eighth, quarter, half notes)
-                const noteTypes = ['eighth', 'quarter', 'half'];
-                // Use event ID to determine note type consistently
-                const noteType = noteTypes[info.event.id.charCodeAt(0) % noteTypes.length];
-                
-                // Generate SVG for a musical note
-                let noteSVG;
-                
-                if (noteType === 'eighth') {
-                    noteSVG = `
-                        <svg class="music-note" width="20" height="32" viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg">
-                            <ellipse cx="6" cy="26" rx="5" ry="4" fill="${noteColor}" stroke="#222" stroke-width="1"/>
-                            <line x1="11" y1="26" x2="11" y2="8" stroke="#222" stroke-width="2"/>
-                            <path d="M11 8C14 8 18 10 18 14" stroke="#222" stroke-width="1.5" fill="none"/>
-                        </svg>
-                    `;
-                } else if (noteType === 'quarter') {
-                    noteSVG = `
-                        <svg class="music-note" width="16" height="32" viewBox="0 0 16 32" xmlns="http://www.w3.org/2000/svg">
-                            <ellipse cx="6" cy="26" rx="5" ry="4" fill="${noteColor}" stroke="#222" stroke-width="1"/>
-                            <line x1="11" y1="26" x2="11" y2="8" stroke="#222" stroke-width="2"/>
-                        </svg>
-                    `;
-                } else { // half note
-                    noteSVG = `
-                        <svg class="music-note" width="16" height="32" viewBox="0 0 16 32" xmlns="http://www.w3.org/2000/svg">
-                            <ellipse cx="6" cy="26" rx="5" ry="4" fill="white" stroke="#222" stroke-width="1"/>
-                            <line x1="11" y1="26" x2="11" y2="8" stroke="#222" stroke-width="2"/>
-                        </svg>
-                    `;
+
+                // Determine color from category (legend)
+                let noteColor = '#222'; // default black
+                if (info.event.extendedProps && info.event.extendedProps.category) {
+                    let category = info.event.extendedProps.category;
+                    let legendList = document.getElementById('legend-list');
+                    if (legendList) {
+                        let items = legendList.querySelectorAll('li');
+                        items.forEach(function(li) {
+                            let nameText = li.querySelector('.legend-name-text');
+                            let colorCircle = li.querySelector('.legend-color-circle');
+                            if (nameText && colorCircle && nameText.textContent === category) {
+                                noteColor = colorCircle.style.background || noteColor;
+                            }
+                        });
+                    }
+                } else if (info.event.backgroundColor) {
+                    noteColor = info.event.backgroundColor;
                 }
-                
-                info.el.innerHTML = noteSVG;
-                
-                // Vertical position based on event time
+
+                // Position note on staff line or space based on event parameters
+                // Staff positions: 0=bottom line, 10=space, 20=line, 30=space, 40=line, etc.
+                let staffPositions = [0, 10, 20, 30, 40, 50, 60, 70, 80]; 
+                let posIndex = 0;
                 if (info.event.start) {
-                    const hour = info.event.start.getHours();
-                    // Position notes on different staff lines based on hour
-                    // Use modulo to cycle through 5 lines
-                    const staffLine = (hour % 5) * 20; // 20px between staff lines
-                    info.el.style.marginTop = `${staffLine}px`;
+                    posIndex = info.event.start.getHours() % staffPositions.length;
+                } else {
+                    posIndex = info.event.id ? info.event.id.charCodeAt(0) % staffPositions.length : 0;
                 }
+                
+                let marginTop = staffPositions[posIndex];
+                let noteSVG = '';
+
+                // Render different note styles based on how many events are in the day
+                if (eventCount === 1) {
+                    // Whole note (hollow oval with white center, like in the reference image)
+                    noteSVG = `
+                        <svg width="32" height="20" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="16" cy="10" rx="13" ry="8" fill="white" stroke="${noteColor}" stroke-width="2" />
+                        </svg>
+                    `;
+                } else if (eventCount === 2) {
+                    // Half note (hollow oval with stem, like in the reference image)
+                    noteSVG = `
+                        <svg width="20" height="32" viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="7" cy="24" rx="6" ry="4" fill="white" stroke="${noteColor}" stroke-width="2" />
+                            <line x1="13" y1="24" x2="13" y2="8" stroke="${noteColor}" stroke-width="2" />
+                        </svg>
+                    `;
+                } else {
+                    // Quarter note (filled oval with stem, like in the reference image)
+                    noteSVG = `
+                        <svg width="20" height="32" viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="7" cy="24" rx="6" ry="4" fill="${noteColor}" stroke="${noteColor}" stroke-width="1" />
+                            <line x1="13" y1="24" x2="13" y2="8" stroke="${noteColor}" stroke-width="2" />
+                        </svg>
+                    `;
+                }
+
+                let wrapper = document.createElement('div');
+                wrapper.innerHTML = noteSVG;
+                wrapper.style.marginTop = marginTop + 'px';
+                info.el.appendChild(wrapper);
                 
                 // Add tooltip with event details
                 info.el.title = `${info.event.title}${info.event.start ? ' - ' + info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}`;
