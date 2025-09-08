@@ -107,24 +107,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (eventCount === 1) {
                     // Whole note (hollow oval with white center, like in the reference image)
                     noteSVG = `
-                        <svg width="32" height="20" viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
-                            <ellipse cx="16" cy="10" rx="13" ry="8" fill="white" stroke="${noteColor}" stroke-width="2" />
+                        <svg width="20" height="12" viewBox="0 0 20 12" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="10" cy="6" rx="8" ry="5" fill="white" stroke="${noteColor}" stroke-width="1.5" />
                         </svg>
                     `;
                 } else if (eventCount === 2) {
                     // Half note (hollow oval with stem, like in the reference image)
                     noteSVG = `
-                        <svg width="20" height="32" viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
-                            <ellipse cx="7" cy="24" rx="6" ry="4" fill="white" stroke="${noteColor}" stroke-width="2" />
-                            <line x1="13" y1="24" x2="13" y2="8" stroke="${noteColor}" stroke-width="2" />
+                        <svg width="12" height="20" viewBox="0 0 12 20" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="5" cy="16" rx="4" ry="3" fill="white" stroke="${noteColor}" stroke-width="1.5" />
+                            <line x1="9" y1="16" x2="9" y2="4" stroke="${noteColor}" stroke-width="1.5" />
                         </svg>
                     `;
                 } else {
                     // Quarter note (filled oval with stem, like in the reference image)
                     noteSVG = `
-                        <svg width="20" height="32" viewBox="0 0 20 32" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
-                            <ellipse cx="7" cy="24" rx="6" ry="4" fill="${noteColor}" stroke="${noteColor}" stroke-width="1" />
-                            <line x1="13" y1="24" x2="13" y2="8" stroke="${noteColor}" stroke-width="2" />
+                        <svg width="12" height="20" viewBox="0 0 12 20" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;">
+                            <ellipse cx="5" cy="16" rx="4" ry="3" fill="${noteColor}" stroke="${noteColor}" stroke-width="1" />
+                            <line x1="9" y1="16" x2="9" y2="4" stroke="${noteColor}" stroke-width="1.5" />
                         </svg>
                     `;
                 }
